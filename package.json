@@ -1,0 +1,26 @@
+{
+  "name": "netflix-project",
+  "version": "1.0.0",
+  "description": "Final Assignment for the Web Application Development Course",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shirabenben/Netfilx-Project.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/shirabenben/Netfilx-Project/issues"
+  },
+  "homepage": "https://github.com/shirabenben/Netfilx-Project#readme",
+  "dependencies": {
+    "express": "^5.1.0",
+    "mongoose": "^8.18.1"
+  }
+}
