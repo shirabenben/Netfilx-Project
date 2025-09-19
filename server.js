@@ -19,7 +19,14 @@ mongoose.connect('mongodb://localhost:27017/netflix')
 
 // Routes
 const movieRoutes = require('./server/routes/movies');
+const userRoutes = require('./server/routes/users');
+const contentRoutes = require('./server/routes/content');
+const catalogRoutes = require('./server/routes/catalogs');
+
 app.use('/api/movies', movieRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/content', contentRoutes);
+app.use('/api/catalogs', catalogRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {

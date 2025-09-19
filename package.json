@@ -20,7 +20,9 @@
   },
   "homepage": "https://github.com/shirabenben/Netfilx-Project#readme",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "express": "^5.1.0",
-    "mongoose": "^8.18.1"
+    "mongoose": "^8.18.1",
+    "mongoose-paginate-v2": "^1.9.1"
   }
 }

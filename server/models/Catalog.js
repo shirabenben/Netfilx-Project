@@ -1,0 +1,48 @@
+const mongoose = require('mongoose');
+
+const catalogSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 100
+  },
+  description: {
+    type: String,
+    trim: true,
+    maxlength: 500
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  content: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Content'
+  }],
+  isPublic: {
+    type: Boolean,
+    default: false
+  },
+  type: {
+    type: String,
+    enum: ['watchlist', 'favorites', 'custom'],
+    default: 'custom'
+  }
+}, {
+  timestamps: true
+});
+
+// Ensure unique catalog names per user
+catalogSchema.index({ user: 1, name: 1 }, { unique: true });
+
+// Prevent duplicate content in the same catalog
+catalogSchema.pre('save', function(next) {
+  if (this.content) {
+    this.content = [...new Set(this.content.map(id => id.toString()))].map(id => mongoose.Types.ObjectId(id));
+  }
+  next();
+});
+
+module.exports = mongoose.model('Catalog', catalogSchema);
