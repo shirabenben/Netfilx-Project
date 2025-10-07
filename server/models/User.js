@@ -34,6 +34,26 @@ const userSchema = new mongoose.Schema({
     required: true,
     trim: true,
     maxlength: 50
+  },
+  profiles: {
+    type: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Profile'
+    }],
+    validate: [
+      {
+        validator: function(profiles) {
+          return profiles.length >= 1;
+        },
+        message: 'User must have at least one profile'
+      },
+      {
+        validator: function(profiles) {
+          return profiles.length <= 5;
+        },
+        message: 'User cannot have more than 5 profiles'
+      }
+    ]
   }
 }, {
   timestamps: true

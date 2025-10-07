@@ -57,11 +57,7 @@ const contentSchema = new mongoose.Schema({
     trim: true,
     maxlength: 100
   }],
-  posterUrl: {
-    type: String,
-    trim: true
-  },
-  trailerUrl: {
+  videoUrl: {
     type: String,
     trim: true
   },

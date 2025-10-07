@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
 const viewingHabitSchema = new mongoose.Schema({
-  user: {
+  profile: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'Profile',
     required: true
   },
   content: {
@@ -27,6 +27,6 @@ const viewingHabitSchema = new mongoose.Schema({
   timestamps: true
 });
 
-viewingHabitSchema.index({ user: 1, content: 1 }, { unique: true });
+viewingHabitSchema.index({ profile: 1, content: 1 }, { unique: true });
 
 module.exports = mongoose.model('ViewingHabit', viewingHabitSchema);

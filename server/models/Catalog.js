@@ -12,9 +12,9 @@ const catalogSchema = new mongoose.Schema({
     trim: true,
     maxlength: 500
   },
-  user: {
+  profile: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'Profile',
     required: true
   },
   content: [{
@@ -34,8 +34,8 @@ const catalogSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Ensure unique catalog names per user
-catalogSchema.index({ user: 1, name: 1 }, { unique: true });
+// Ensure unique catalog names per profile
+catalogSchema.index({ profile: 1, name: 1 }, { unique: true });
 
 // Prevent duplicate content in the same catalog
 catalogSchema.pre('save', function(next) {
