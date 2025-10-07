@@ -1,6 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,20 +15,20 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Connect to MongoDB
-mongoose.connect('mongodb://localhost:27017/netflix')
+mongoose.connect(process.env.MONGODB_URI)
 .then(() => console.log('MongoDB connected'))
 .catch(err => console.error('MongoDB connection error:', err));
 
 // Routes
-const movieRoutes = require('./server/routes/movies');
 const userRoutes = require('./server/routes/users');
 const contentRoutes = require('./server/routes/content');
 const catalogRoutes = require('./server/routes/catalogs');
+const viewingHabitRoutes = require('./server/routes/viewingHabits');
 
-app.use('/api/movies', movieRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/catalogs', catalogRoutes);
+app.use('/api/viewing-habits', viewingHabitRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {

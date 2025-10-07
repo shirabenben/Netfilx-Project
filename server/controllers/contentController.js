@@ -3,6 +3,7 @@ const Content = require('../models/Content');
 // Get all content with optional filtering
 const getAllContent = async (req, res) => {
   try {
+    // 1. Destructure query parameters
     const {
       page = 1,
       limit = 10,
@@ -13,9 +14,8 @@ const getAllContent = async (req, res) => {
       sort = '-createdAt'
     } = req.query;
 
+    // 2. Build the query object
     const query = { isActive: true };
-
-    // Add filters
     if (genre) {
       query.genre = { $in: genre.split(',') };
     }
@@ -29,23 +29,34 @@ const getAllContent = async (req, res) => {
       query.$text = { $search: search };
     }
 
-    const options = {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      sort: sort,
-      select: '-__v'
-    };
+    // 3. Parse page and limit
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const skip = (pageNum - 1) * limitNum;
 
-    const result = await Content.paginate(query, options);
+    // 4. Execute queries in parallel for efficiency
+    const [results, totalDocs] = await Promise.all([
+        Content.find(query)
+            .sort(sort)
+            .skip(skip)
+            .limit(limitNum)
+            .select('-__v')
+            .lean(),
+        Content.countDocuments(query)
+    ]);
 
+    // 5. Calculate total pages
+    const totalPages = Math.ceil(totalDocs / limitNum);
+
+    // 6. Send the response
     res.json({
       success: true,
-      data: result.docs,
+      data: results,
       pagination: {
-        total: result.totalDocs,
-        page: result.page,
-        pages: result.totalPages,
-        limit: result.limit
+        total: totalDocs,
+        page: pageNum,
+        pages: totalPages,
+        limit: limitNum
       }
     });
   } catch (error) {

@@ -40,7 +40,7 @@ catalogSchema.index({ user: 1, name: 1 }, { unique: true });
 // Prevent duplicate content in the same catalog
 catalogSchema.pre('save', function(next) {
   if (this.content) {
-    this.content = [...new Set(this.content.map(id => id.toString()))].map(id => mongoose.Types.ObjectId(id));
+        this.content = [...new Set(this.content.map(id => id.toString()))].map(id => new mongoose.Types.ObjectId(id));
   }
   next();
 });

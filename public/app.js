@@ -4,9 +4,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function loadMovies() {
   try {
-    const response = await fetch('/api/movies');
-    const movies = await response.json();
-    displayMovies(movies);
+    const response = await fetch('/api/content/');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const result = await response.json();
+    if (result.success) {
+      displayMovies(result.data);
+    } else {
+      throw new Error('Failed to load movies: ' + (result.message || 'Unknown server error'));
+    }
   } catch (error) {
     console.error('Error loading movies:', error);
     document.getElementById('movies').innerHTML = '<p class="text-center">Error loading movies.</p>';
