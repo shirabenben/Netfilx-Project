@@ -61,6 +61,10 @@ const contentSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  imageUrl: {
+    type: String,
+    trim: true
+  },
   isActive: {
     type: Boolean,
     default: true

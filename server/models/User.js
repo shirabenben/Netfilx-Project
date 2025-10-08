@@ -35,6 +35,10 @@ const userSchema = new mongoose.Schema({
     trim: true,
     maxlength: 50
   },
+  isAdmin: {
+    type: Boolean,
+    default: false
+  },
   profiles: {
     type: [{
       type: mongoose.Schema.Types.ObjectId,
