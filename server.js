@@ -14,6 +14,10 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Set up EJS as template engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)
 .then(() => console.log('MongoDB connected'))
@@ -32,7 +36,9 @@ app.use('/api/viewing-habits', viewingHabitRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  console.log('Homepage route called');
+  console.log('Views directory:', app.get('views'));
+  res.render('homepage', { title: 'Netflix Project' });
 });
 
 app.listen(PORT, () => {
