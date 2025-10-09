@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title || 'Netflix Project' %></title>
+    <title><%= title || 'Netflix Project' %> - <%= profile ? profile.name : 'Home' %></title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -16,75 +16,39 @@
 </head>
 <body>
     <!-- Include Netflix-like Navigation Bar -->
-    <%- include('partials/_NavBar') %>
+    <%- include('partials/_NavBar', { profile: profile, user: user }) %>
     
     <!-- Main Content Container -->
     <div class="container-fluid mt-4">
         <!-- Most Popular Content Section -->
-        <section class="mb-5">
-            <h2>🔥 Most Popular</h2>
-            <div class="content-slider-wrapper">
-                <button class="slider-btn slider-btn-left" id="popular-left-btn">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <div class="content-slider" id="popular-slider">
-                    <div id="popular-content" class="content-row">
-                        <div class="content-item loading">
-                            <div class="spinner-border text-danger">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <button class="slider-btn slider-btn-right" id="popular-right-btn">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-            </div>
-        </section>
+        <%- include('partials/_ContentSlider', {
+            title: 'Most Popular',
+            icon: '🔥',
+            containerId: 'popular-content',
+            sliderId: 'popular-slider',
+            leftBtnId: 'popular-left-btn',
+            rightBtnId: 'popular-right-btn'
+        }) %>
 
         <!-- Newest Movies Section -->
-        <section class="mb-5">
-            <h2>🎬 Latest Movies</h2>
-            <div class="content-slider-wrapper">
-                <button class="slider-btn slider-btn-left" id="movies-left-btn">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <div class="content-slider" id="movies-slider">
-                    <div id="newest-movies" class="content-row">
-                        <div class="content-item loading">
-                            <div class="spinner-border text-danger">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <button class="slider-btn slider-btn-right" id="movies-right-btn">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-            </div>
-        </section>
+        <%- include('partials/_ContentSlider', {
+            title: 'Latest Movies',
+            icon: '🎬',
+            containerId: 'newest-movies',
+            sliderId: 'movies-slider',
+            leftBtnId: 'movies-left-btn',
+            rightBtnId: 'movies-right-btn'
+        }) %>
 
         <!-- Newest Series Section -->
-        <section class="mb-5">
-            <h2>📺 Latest Series</h2>
-            <div class="content-slider-wrapper">
-                <button class="slider-btn slider-btn-left" id="series-left-btn">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <div class="content-slider" id="series-slider">
-                    <div id="newest-series" class="content-row">
-                        <div class="content-item loading">
-                            <div class="spinner-border text-danger">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <button class="slider-btn slider-btn-right" id="series-right-btn">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-            </div>
-        </section>
+        <%- include('partials/_ContentSlider', {
+            title: 'Latest Series',
+            icon: '📺',
+            containerId: 'newest-series',
+            sliderId: 'series-slider',
+            leftBtnId: 'series-left-btn',
+            rightBtnId: 'series-right-btn'
+        }) %>
     </div>
     
     <!-- Bootstrap JS -->

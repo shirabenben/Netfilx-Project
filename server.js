@@ -1,8 +1,13 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const path = require('path');
 
+// Import required middleware and controllers
+const { requireAuth, requireProfile } = require('./server/middleware/auth');
+const { getUserProfiles } = require('./server/controllers/userController');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,6 +15,22 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'netflix-project-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI,
+    touchAfter: 24 * 3600 // lazy session update
+  }),
+  cookie: {
+    secure: false, // set to true if using https
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week
+  }
+}));
 
 // Serve static files from public directory
 app.use(express.static(path.join(__dirname, 'public')));
@@ -34,11 +55,30 @@ app.use('/api/content', contentRoutes);
 app.use('/api/catalogs', catalogRoutes);
 app.use('/api/viewing-habits', viewingHabitRoutes);
 
+// Main homepage route
+app.get('/homepage', requireAuth, requireProfile, (req, res) => {
+  res.render('homepage', { 
+    title: 'Netflix Project',
+    profile: req.profile,
+    user: req.user
+  });
+});
+
+// Clean URL redirects to users routes
+app.get('/profiles', requireAuth, getUserProfiles);
+
+app.get('/logout', (req, res) => {
+  res.redirect('/api/users/logout-view');
+});
+
 // Basic route for testing
 app.get('/', (req, res) => {
-  console.log('Homepage route called');
-  console.log('Views directory:', app.get('views'));
-  res.render('homepage', { title: 'Netflix Project' });
+  // For unauthenticated users, redirect to login
+  if (!req.session || !req.session.userId) {
+    return res.redirect('/login.html');
+  }
+  // For authenticated users, redirect to profiles
+  res.redirect('/profiles');
 });
 
 app.listen(PORT, () => {

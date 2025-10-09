@@ -188,6 +188,274 @@ section h2 {
     color: #e50914 !important;
 }
 
+/* Registration Page Styles */
+.registration-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.registration-card {
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 10px;
+    padding: 40px;
+    max-width: 450px;
+    width: 100%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.registration-title {
+    color: #e50914;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.form-control {
+    background: rgba(51, 51, 51, 0.8);
+    border: 1px solid #555;
+    color: white;
+    border-radius: 5px;
+    padding: 12px;
+}
+
+.form-control:focus {
+    background: rgba(51, 51, 51, 0.9);
+    border-color: #e50914;
+    box-shadow: 0 0 0 0.2rem rgba(229, 9, 20, 0.25);
+    color: white;
+}
+
+.form-control::placeholder {
+    color: #aaa;
+}
+
+.btn-register {
+    background: #e50914;
+    border: none;
+    color: white;
+    font-weight: bold;
+    padding: 12px;
+    border-radius: 5px;
+    width: 100%;
+    margin-top: 20px;
+    transition: background 0.3s ease;
+}
+
+.btn-register:hover {
+    background: #b8070f;
+    color: white;
+}
+
+.btn-register:disabled {
+    background: #555;
+    cursor: not-allowed;
+}
+
+.form-label {
+    color: white;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.login-link {
+    text-align: center;
+    margin-top: 20px;
+    color: #aaa;
+}
+
+.login-link a {
+    color: #e50914;
+    text-decoration: none;
+}
+
+.login-link a:hover {
+    text-decoration: underline;
+}
+
+.error-message {
+    color: #e50914;
+    font-size: 0.9rem;
+    margin-top: 5px;
+}
+
+.success-message {
+    color: #28a745;
+    font-size: 0.9rem;
+    margin-top: 10px;
+    text-align: center;
+}
+
+/* Profile Selection Page Styles */
+.profile-selection-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+}
+
+.profile-selection-content {
+    text-align: center;
+    max-width: 1000px;
+    width: 100%;
+}
+
+.profile-title {
+    color: white;
+    font-size: 3rem;
+    font-weight: 300;
+    margin-bottom: 50px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.profiles-grid {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 40px;
+    margin-bottom: 50px;
+}
+
+.profile-item {
+    transition: transform 0.3s ease;
+    cursor: pointer;
+}
+
+.profile-item:hover {
+    transform: scale(1.1);
+}
+
+.profile-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.profile-link:hover {
+    color: inherit;
+    text-decoration: none;
+}
+
+.profile-avatar {
+    width: 150px;
+    height: 150px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+    border: 3px solid transparent;
+}
+
+.profile-avatar:hover {
+    border-color: white;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.profile-avatar i {
+    font-size: 80px;
+    color: #666;
+}
+
+.profile-item:hover .profile-avatar i {
+    color: white;
+}
+
+.profile-name {
+    color: #999;
+    font-size: 1.2rem;
+    font-weight: 400;
+    margin: 0;
+    transition: color 0.3s ease;
+}
+
+.profile-item:hover .profile-name {
+    color: white;
+}
+
+.profile-actions {
+    margin-top: 30px;
+}
+
+.no-profiles {
+    color: #999;
+    padding: 40px;
+}
+
+.no-profiles p {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+}
+
+/* Profile Header Styles */
+.profile-header {
+    background: rgba(0, 0, 0, 0.8);
+    padding: 15px 0;
+    border-bottom: 1px solid #333;
+}
+
+.profile-info h5 {
+    color: white;
+    margin: 0;
+}
+
+.profile-actions .btn {
+    font-size: 0.9rem;
+}
+
+/* Responsive Profile Selection */
+@media (max-width: 768px) {
+    .profile-title {
+        font-size: 2rem;
+        margin-bottom: 30px;
+    }
+    
+    .profiles-grid {
+        gap: 30px;
+    }
+    
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .profile-avatar i {
+        font-size: 60px;
+    }
+    
+    .profile-name {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .profile-title {
+        font-size: 1.5rem;
+    }
+    
+    .profiles-grid {
+        gap: 20px;
+    }
+    
+    .profile-avatar {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .profile-avatar i {
+        font-size: 50px;
+    }
+    
+    .profile-actions .btn {
+        font-size: 0.8rem;
+        margin: 5px;
+    }
+}
+
 /* Mobile Responsive */
 @media (max-width: 576px) {
     .content-item { width: 150px; }
