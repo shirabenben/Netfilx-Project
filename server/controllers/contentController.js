@@ -1,4 +1,5 @@
 const Content = require('../models/Content');
+const ViewingHabit = require('../models/ViewingHabit');
 
 // Get all content with optional filtering
 const getAllContent = async (req, res) => {
@@ -232,6 +233,118 @@ const getTrendingContent = async (req, res) => {
   }
 };
 
+// Get top 5 most popular content (using GroupBy for viewing habits)
+const getMostPopularContent = async (req, res) => {
+  try {
+    // Aggregate viewing habits to find most watched content
+    const popularContent = await ViewingHabit.aggregate([
+      {
+        $group: {
+          _id: '$content',
+          viewCount: { $sum: 1 },
+          avgProgress: { $avg: '$watchProgress' }
+        }
+      },
+      {
+        $sort: { viewCount: -1, avgProgress: -1 }
+      },
+      {
+        $limit: 5
+      },
+      {
+        $lookup: {
+          from: 'contents',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'contentDetails'
+        }
+      },
+      {
+        $unwind: '$contentDetails'
+      },
+      {
+        $match: {
+          'contentDetails.isActive': true
+        }
+      },
+      {
+        $project: {
+          _id: '$contentDetails._id',
+          title: '$contentDetails.title',
+          description: '$contentDetails.description',
+          genre: '$contentDetails.genre',
+          year: '$contentDetails.year',
+          type: '$contentDetails.type',
+          imageUrl: '$contentDetails.imageUrl',
+          viewCount: 1
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      count: popularContent.length,
+      data: popularContent
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching popular content',
+      error: error.message
+    });
+  }
+};
+
+// Get top 5 newest movies
+const getNewestMovies = async (req, res) => {
+  try {
+    const newestMovies = await Content.find({
+      type: 'movie',
+      isActive: true
+    })
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .select('title description genre year type imageUrl createdAt');
+
+    res.json({
+      success: true,
+      count: newestMovies.length,
+      data: newestMovies
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching newest movies',
+      error: error.message
+    });
+  }
+};
+
+// Get top 5 newest series
+const getNewestSeries = async (req, res) => {
+  try {
+    const newestSeries = await Content.find({
+      type: 'series',
+      isActive: true
+    })
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .select('title description genre year type imageUrl createdAt');
+
+    res.json({
+      success: true,
+      count: newestSeries.length,
+      data: newestSeries
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching newest series',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAllContent,
   getContentById,
@@ -239,5 +352,8 @@ module.exports = {
   updateContent,
   deleteContent,
   getContentByGenre,
-  getTrendingContent
+  getTrendingContent,
+  getMostPopularContent,
+  getNewestMovies,
+  getNewestSeries
 };

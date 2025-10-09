@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Profile = require('../models/Profile');
 
 // Get all users
 const getAllUsers = async (req, res) => {
@@ -36,55 +37,6 @@ const getUserById = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching user',
-      error: error.message
-    });
-  }
-};
-
-// Create new user
-const createUser = async (req, res) => {
-  try {
-    const { username, email, password, firstName, lastName } = req.body;
-
-    // Check if user already exists
-    const existingUser = await User.findOne({
-      $or: [{ email }, { username }]
-    });
-
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: 'User with this email or username already exists'
-      });
-    }
-
-    const user = new User({
-      username,
-      email,
-      password,
-      firstName,
-      lastName
-    });
-
-    await user.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'User created successfully',
-      data: user
-    });
-  } catch (error) {
-    if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => err.message);
-      return res.status(400).json({
-        success: false,
-        message: 'Validation error',
-        errors
-      });
-    }
-    res.status(500).json({
-      success: false,
-      message: 'Error creating user',
       error: error.message
     });
   }
@@ -161,36 +113,180 @@ const deleteUser = async (req, res) => {
   }
 };
 
-// Authenticate user (login)
-const authenticateUser = async (req, res) => {
+// Register new user with automatic profile creation
+const createUser = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, email, password, firstName, lastName, profileName } = req.body;
 
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(401).json({
+    // Check if user already exists
+    const existingUser = await User.findOne({
+      $or: [{ email }, { username }]
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
         success: false,
-        message: 'Invalid credentials'
+        message: 'User with this email or username already exists'
       });
     }
 
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials'
-      });
-    }
+    // Create user first (validation allows empty profiles for new users)
+    const user = new User({
+      username,
+      email,
+      password,
+      firstName,
+      lastName
+    });
 
-    res.json({
+    await user.save();
+
+    // Create the profile
+    const profile = new Profile({
+      name: profileName || `${firstName}'s Profile`,
+      user: user._id
+    });
+
+    await profile.save();
+
+    // Add profile to user
+    user.profiles.push(profile._id);
+    await user.save();
+
+    res.status(201).json({
       success: true,
-      message: 'Authentication successful',
-      data: user
+      message: 'User registered successfully',
+      data: {
+        user: user,
+        profile: profile
+      }
     });
   } catch (error) {
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error',
+        errors
+      });
+    }
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username or email already exists'
+      });
+    }
     res.status(500).json({
       success: false,
-      message: 'Authentication error',
+      message: 'Error registering user',
+      error: error.message
+    });
+  }
+};
+
+// Get user profiles - can return JSON or render HTML based on request
+const getUserProfiles = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).populate('profiles');
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if this is an API request (based on route or Accept header)
+    const isAPIRequest = req.route.path.includes('/api/') || 
+                        req.headers.accept?.includes('application/json');
+
+    if (isAPIRequest) {
+      // Return JSON for API requests
+      res.json({
+        success: true,
+        data: {
+          profiles: user.profiles,
+          user: {
+            _id: user._id,
+            username: user.username,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName
+          }
+        }
+      });
+    } else {
+      // Render HTML for page requests
+      res.render('profile', {
+        title: 'Netflix Project - Select Profile',
+        profiles: user.profiles,
+        user: user
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching user profiles:', error);
+    
+    // Check if this is an API request for error handling too
+    const isAPIRequest = req.route.path.includes('/api/') || 
+                        req.headers.accept?.includes('application/json');
+    
+    if (isAPIRequest) {
+      res.status(500).json({
+        success: false,
+        message: 'Error loading profiles',
+        error: error.message
+      });
+    } else {
+      res.status(500).render('error', {
+        title: 'Error',
+        message: 'Error loading profiles'
+      });
+    }
+  }
+};
+
+// Create new profile
+const createProfile = async (req, res) => {
+  try {
+    const { name } = req.body;
+    const userId = req.user._id;
+
+    // Check if user already has 5 profiles (max limit)
+    const user = await User.findById(userId).populate('profiles');
+    if (user.profiles.length >= 5) {
+      return res.status(400).json({
+        success: false,
+        message: 'Maximum of 5 profiles allowed per user'
+      });
+    }
+
+    // Create new profile
+    const profile = new Profile({
+      name,
+      user: userId
+    });
+
+    await profile.save();
+
+    // Add profile to user's profiles array
+    user.profiles.push(profile._id);
+    await user.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Profile created successfully',
+      data: profile
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Profile name already exists for this user'
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Error creating profile',
       error: error.message
     });
   }
@@ -200,7 +296,8 @@ module.exports = {
   getAllUsers,
   getUserById,
   createUser,
+  getUserProfiles,
+  createProfile,
   updateUser,
-  deleteUser,
-  authenticateUser
+  deleteUser
 };

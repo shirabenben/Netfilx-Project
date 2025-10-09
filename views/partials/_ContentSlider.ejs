@@ -1,0 +1,22 @@
+<!-- Content Slider Partial -->
+<!-- Parameters: title, icon, containerId, sliderId, leftBtnId, rightBtnId -->
+<section class="mb-5">
+    <h2><%= icon %> <%= title %></h2>
+    <div class="content-slider-wrapper">
+        <button class="slider-btn slider-btn-left" id="<%= leftBtnId %>">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="content-slider" id="<%= sliderId %>">
+            <div id="<%= containerId %>" class="content-row">
+                <div class="content-item loading">
+                    <div class="spinner-border text-danger">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button class="slider-btn slider-btn-right" id="<%= rightBtnId %>">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+</section>

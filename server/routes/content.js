@@ -7,11 +7,23 @@ const {
   updateContent,
   deleteContent,
   getContentByGenre,
-  getTrendingContent
+  getTrendingContent,
+  getMostPopularContent,
+  getNewestMovies,
+  getNewestSeries
 } = require('../controllers/contentController');
 
 // GET /api/content - Get all content with optional filtering
 router.get('/', getAllContent);
+
+// GET /api/content/popular - Get most popular content
+router.get('/popular', getMostPopularContent);
+
+// GET /api/content/newest-movies - Get newest movies
+router.get('/newest-movies', getNewestMovies);
+
+// GET /api/content/newest-series - Get newest series
+router.get('/newest-series', getNewestSeries);
 
 // GET /api/content/trending - Get trending content
 router.get('/trending', getTrendingContent);

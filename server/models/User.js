@@ -47,7 +47,8 @@ const userSchema = new mongoose.Schema({
     validate: [
       {
         validator: function(profiles) {
-          return profiles.length >= 1;
+          // Allow empty array during creation, but require at least 1 profile after creation
+          return this.isNew || profiles.length >= 1;
         },
         message: 'User must have at least one profile'
       },
