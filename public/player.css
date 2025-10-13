@@ -1,0 +1,10 @@
+/* רק התאמות קטנות, רוב העיצוב נשלט על ידי Bootstrap */
+
+#episodeList {
+  width: 250px;
+  z-index: 1050;
+}
+
+#episodeList a:hover {
+  text-decoration: underline;
+}

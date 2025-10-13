@@ -44,9 +44,18 @@ const contentSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ['movie', 'series'],
-    default: 'movie'
+    enum: ['movie', 'series', 'episode'],
+    default: 'movie',
   },
+  episodeNumber: {
+    type: Number,
+    min: 1
+  },
+  seriesId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Content'
+  },
+
   director: {
     type: String,
     trim: true,

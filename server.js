@@ -49,7 +49,11 @@ const userRoutes = require('./server/routes/users');
 const contentRoutes = require('./server/routes/content');
 const catalogRoutes = require('./server/routes/catalogs');
 const viewingHabitRoutes = require('./server/routes/viewingHabits');
+const playerRoutes = require('./server/routes/player');
+const Content = require('./server/models/Content');
 
+
+app.use('/player', playerRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/catalogs', catalogRoutes);
@@ -80,6 +84,31 @@ app.get('/', (req, res) => {
   // For authenticated users, redirect to profiles
   res.redirect('/profiles');
 });
+
+// Route for video player page
+app.get('/player', (req, res) => {
+  res.render('player'); // מטעין את views/player.ejs
+});
+
+
+// Player route
+app.get('/player/:id', async (req, res) => {
+  try {
+    const episode = await Content.findById(req.params.id);
+    if (!episode) return res.status(404).send('Episode not found');
+
+    let episodes = [];
+    if (episode.seriesId) {
+      episodes = await Content.find({ seriesId: episode.seriesId }).sort({ episodeNumber: 1 });
+    }
+
+    res.render('player', { episode, episodes });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+});
+
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
