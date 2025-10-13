@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title || 'Netflix Project' %> - <%= profile ? profile.name : 'Home' %></title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <!-- Include Netflix-like Navigation Bar -->
+    <%- include('partials/_NavBar', { profile: profile, user: user }) %>
+    
+    <!-- Main Content Container -->
+    <div class="container-fluid mt-4">
+        <!-- Most Popular Content Section -->
+        <%- include('partials/_ContentSlider', {
+            title: 'Most Popular',
+            icon: '🔥',
+            containerId: 'popular-content',
+            sliderId: 'popular-slider',
+            leftBtnId: 'popular-left-btn',
+            rightBtnId: 'popular-right-btn'
+        }) %>
+
+        <!-- Newest Movies Section -->
+        <%- include('partials/_ContentSlider', {
+            title: 'Latest Movies',
+            icon: '🎬',
+            containerId: 'newest-movies',
+            sliderId: 'movies-slider',
+            leftBtnId: 'movies-left-btn',
+            rightBtnId: 'movies-right-btn'
+        }) %>
+
+        <!-- Newest Series Section -->
+        <%- include('partials/_ContentSlider', {
+            title: 'Latest Series',
+            icon: '📺',
+            containerId: 'newest-series',
+            sliderId: 'series-slider',
+            leftBtnId: 'series-left-btn',
+            rightBtnId: 'series-right-btn'
+        }) %>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Main Application JavaScript -->
+    <script src="/app.js"></script>
+</body>
+</html>
