@@ -33,8 +33,20 @@ const requireAuth = async (req, res, next) => {
 // Middleware to check if profile is selected and valid
 const requireProfile = async (req, res, next) => {
     try {
+        // If user is admin, skip profile requirement
+        if (req.user && req.user.isAdmin) {
+            // Create a virtual admin profile for session management
+            req.profile = {
+                _id: null, // No real profile
+                name: 'Admin',
+                user: req.user._id
+            };
+            req.session.profileId = 'admin';
+            return next();
+        }
+
         const profileId = req.query.profile || req.session?.profileId;
-        
+
         if (!profileId) {
             return res.redirect('/profiles');
         }
@@ -90,6 +102,10 @@ const login = async (req, res) => {
         // Check password
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
+            console.log(`Login failed for user: ${username}, password check failed`);
+            console.log(`Stored password hash: ${user.password}`);
+            console.log(`Password field exists: ${!!user.password}`);
+            console.log(`User isAdmin: ${user.isAdmin}`);
             return res.status(401).json({
                 success: false,
                 message: 'Invalid credentials'
@@ -98,6 +114,19 @@ const login = async (req, res) => {
 
         // Create session
         req.session.userId = user._id;
+
+        // Admin users don't need profiles, redirect them to homepage
+        if (user.isAdmin) {
+            return res.json({
+                success: true,
+                message: 'Admin login successful',
+                data: {
+                    user: user,
+                    hasProfiles: true, // Admin always goes to homepage
+                    redirectTo: '/homepage'
+                }
+            });
+        }
 
         res.json({
             success: true,

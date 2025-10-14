@@ -80,12 +80,15 @@ document.addEventListener('DOMContentLoaded', function() {
             if (result.success) {
                 showSuccess('Login successful! Redirecting...');
                 
-                // Redirect based on whether user has profiles
+                // Redirect based on login response
                 setTimeout(() => {
-                    if (result.data.hasProfiles) {
+                    if (result.data.redirectTo) {
+                        // Admin users have a specific redirect
+                        window.location.href = result.data.redirectTo;
+                    } else if (result.data.hasProfiles) {
                         window.location.href = '/profiles';
                     } else {
-                        window.location.href = '/create-profile';
+                        window.location.href = '/profiles';
                     }
                 }, 1000);
             } else {
