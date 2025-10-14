@@ -7,7 +7,9 @@ const {
   getUserProfiles,
   createProfile,
   updateUser,
-  deleteUser
+  deleteUser,
+  getWatchedContent,
+  getUnwatchedContent
 } = require('../controllers/userController');
 
 const { requireAuth, requireProfile, login, logout } = require('../middleware/auth');
@@ -29,6 +31,12 @@ router.get('/profiles', requireAuth, getUserProfiles);
 
 // POST /api/users/profiles - Create new profile (protected)
 router.post('/profiles', requireAuth, createProfile);
+
+// GET /api/users/profiles/:profileId/watched - Get watched content for a profile (protected)
+router.get('/profiles/:profileId/watched', requireAuth, getWatchedContent);
+
+// GET /api/users/profiles/:profileId/unwatched - Get unwatched content for a profile (protected)
+router.get('/profiles/:profileId/unwatched', requireAuth, getUnwatchedContent);
 
 // GET /logout - Logout user  
 router.get('/logout-view', (req, res) => {

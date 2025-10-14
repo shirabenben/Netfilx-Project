@@ -292,6 +292,66 @@ const createProfile = async (req, res) => {
   }
 };
 
+// Get watched content for a profile
+const getWatchedContent = async (req, res) => {
+  try {
+    const { profileId } = req.params;
+
+    const profile = await Profile.findById(profileId).populate('watchedContent');
+    if (!profile) {
+      return res.status(404).json({ success: false, message: 'Profile not found' });
+    }
+
+    res.json({ 
+      success: true, 
+      count: profile.watchedContent.length, 
+      data: profile.watchedContent 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error fetching watched content', 
+      error: error.message 
+    });
+  }
+};
+
+// Get unwatched content for a profile
+const getUnwatchedContent = async (req, res) => {
+  try {
+    const { profileId } = req.params;
+
+    const profile = await Profile.findById(profileId).populate('watchedContent');
+    if (!profile) {
+      return res.status(404).json({ success: false, message: 'Profile not found' });
+    }
+
+    // Get all active content
+    const Content = require('../models/Content');
+    const allContent = await Content.find({ isActive: true });
+
+    // Get IDs of watched content
+    const watchedIds = profile.watchedContent.map(item => item._id.toString());
+
+    // Filter out watched content to get unwatched content
+    const unwatchedContent = allContent.filter(
+      item => !watchedIds.includes(item._id.toString())
+    );
+
+    res.json({ 
+      success: true, 
+      count: unwatchedContent.length, 
+      data: unwatchedContent 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error fetching unwatched content', 
+      error: error.message 
+    });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -299,5 +359,7 @@ module.exports = {
   getUserProfiles,
   createProfile,
   updateUser,
-  deleteUser
+  deleteUser,
+  getWatchedContent,
+  getUnwatchedContent
 };

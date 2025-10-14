@@ -6,43 +6,91 @@ async function renderAllSeriesGroupedByGenre() {
     const container = document.getElementById('genre-sliders');
     if (!container) return;
 
-    // Add sort dropdown
-    const sortContainer = document.createElement('div');
-    sortContainer.className = 'sort-container';
-    sortContainer.innerHTML = `
-        <label for="sort-series" class="text-white me-2">Sort By:</label>
-        <select id="sort-series" class="form-select bg-dark text-white w-auto d-inline-block">
-            <option value="-popularity">Popularity (High to Low)</option>
-            <option value="popularity">Popularity (Low to High)</option>
-            <option value="-starRating">Rating (High to Low)</option>
-            <option value="starRating">Rating (Low to High)</option>
-        </select>
+    // Add filter and sort controls
+    const controlsContainer = document.createElement('div');
+    controlsContainer.className = 'controls-container mb-3 d-flex gap-2 align-items-center flex-wrap';
+    controlsContainer.innerHTML = `
+        <div class="filter-container">
+            <label class="text-white me-1 small"><i class="fas fa-filter"></i></label>
+            <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="filter-series" id="filter-all" value="all" checked>
+                <label class="btn btn-outline-light btn-sm" for="filter-all" title="All Series"><i class="fas fa-list"></i> All</label>
+                
+                <input type="radio" class="btn-check" name="filter-series" id="filter-watched" value="watched">
+                <label class="btn btn-outline-light btn-sm" for="filter-watched" title="Watched Series"><i class="fas fa-eye"></i> Watched</label>
+                
+                <input type="radio" class="btn-check" name="filter-series" id="filter-unwatched" value="unwatched">
+                <label class="btn btn-outline-light btn-sm" for="filter-unwatched" title="Unwatched Series"><i class="fas fa-eye-slash"></i> Unwatched</label>
+            </div>
+        </div>
+        <div class="sort-container">
+            <label for="sort-series" class="text-white me-1 small"><i class="fas fa-sort"></i></label>
+            <select id="sort-series" class="form-select form-select-sm bg-dark text-white w-auto d-inline-block">
+                <option value="-popularity">Popularity (High to Low)</option>
+                <option value="popularity">Popularity (Low to High)</option>
+                <option value="-starRating">Rating (High to Low)</option>
+                <option value="starRating">Rating (Low to High)</option>
+            </select>
+        </div>
     `;
-    container.parentNode.insertBefore(sortContainer, container);
+    container.parentNode.insertBefore(controlsContainer, container);
 
     let currentSort = '-createdAt';
+    let currentFilter = 'all';
 
     document.getElementById('sort-series').addEventListener('change', (event) => {
         currentSort = event.target.value;
-        renderSeries(currentSort);
+        renderSeries(currentSort, currentFilter);
     });
 
-    async function renderSeries(sortOrder) {
+    document.querySelectorAll('input[name="filter-series"]').forEach(radio => {
+        radio.addEventListener('change', (event) => {
+            currentFilter = event.target.value;
+            renderSeries(currentSort, currentFilter);
+        });
+    });
+
+    async function renderSeries(sortOrder, filter) {
         try {
             // Fetch config to get limit
             const configRes = await fetch('/api/config');
             const config = await configRes.json();
             const limit = config.contentFetchLimit || 1000;
 
-            const response = await fetch(`/api/content?type=series&limit=${limit}&sort=${sortOrder}`);
-            const result = await response.json();
-            if (!result.success || !Array.isArray(result.data)) {
-                container.innerHTML = '<div class="text-white">No series available</div>';
-                return;
+            let seriesData = [];
+            
+            if (filter === 'watched' || filter === 'unwatched') {
+                // Get current profile ID from session/cookie
+                const profileId = localStorage.getItem('currentProfileId');
+                if (!profileId) {
+                    container.innerHTML = '<div class="text-white">Please select a profile first</div>';
+                    return;
+                }
+                
+                const endpoint = filter === 'watched' ? 'watched' : 'unwatched';
+                const response = await fetch(`/api/users/profiles/${profileId}/${endpoint}`);
+                const result = await response.json();
+                
+                if (!result.success || !Array.isArray(result.data)) {
+                    container.innerHTML = `<div class="text-white">No ${filter} series available</div>`;
+                    return;
+                }
+                
+                // Filter only series
+                seriesData = result.data.filter(item => item.type === 'series');
+            } else {
+                // Get all series
+                const response = await fetch(`/api/content?type=series&limit=${limit}&sort=${sortOrder}`);
+                const result = await response.json();
+                if (!result.success || !Array.isArray(result.data)) {
+                    container.innerHTML = '<div class="text-white">No series available</div>';
+                    return;
+                }
+                seriesData = result.data;
             }
 
             const genreToItems = new Map();
-            for (const item of result.data) {
+            for (const item of seriesData) {
                 const genres = Array.isArray(item.genre) ? item.genre : [];
                 for (const g of genres) {
                     const key = (g || '').trim();
@@ -88,11 +136,23 @@ async function renderAllSeriesGroupedByGenre() {
         }
     }
 
-    renderSeries(currentSort); // Initial render
+    renderSeries(currentSort, currentFilter); // Initial render
+}
+
+// Store profile ID from URL parameter
+function storeProfileId() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const profileId = urlParams.get('profile');
+    
+    if (profileId) {
+        localStorage.setItem('currentProfileId', profileId);
+        console.log('Profile ID stored:', profileId);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     if (document.body && document.body.dataset && document.body.dataset.page === 'series') {
+        storeProfileId(); // Store profile ID if present in URL
         renderAllSeriesGroupedByGenre();
     }
 });

@@ -11,18 +11,15 @@ const profileSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
-  }
+  },
+  watchedContent: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Content'
+  }]
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
-});
-
-// Virtual populate for viewing habits
-profileSchema.virtual('viewingHabits', {
-  ref: 'ViewingHabit',
-  localField: '_id',
-  foreignField: 'profile'
 });
 
 // Virtual populate for catalogs

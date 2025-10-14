@@ -5,42 +5,90 @@ async function renderAllMoviesGroupedByGenre() {
     const container = document.getElementById('genre-sliders');
     if (!container) return;
 
-    // Add sort dropdown
-    const sortContainer = document.createElement('div');
-    sortContainer.className = 'sort-container';
-    sortContainer.innerHTML = `
-        <label for="sort-movies" class="text-white me-2">Sort By:</label>
-        <select id="sort-movies" class="form-select bg-dark text-white w-auto d-inline-block">
-            <option value="-popularity">Popularity (High to Low)</option>
-            <option value="popularity">Popularity (Low to High)</option>
-            <option value="-starRating">Rating (High to Low)</option>
-            <option value="starRating">Rating (Low to High)</option>
-        </select>
+    // Add filter and sort controls
+    const controlsContainer = document.createElement('div');
+    controlsContainer.className = 'controls-container mb-3 d-flex gap-2 align-items-center flex-wrap';
+    controlsContainer.innerHTML = `
+        <div class="filter-container">
+            <label class="text-white me-1 small"><i class="fas fa-filter"></i></label>
+            <div class="btn-group btn-group-sm" role="group">
+                <input type="radio" class="btn-check" name="filter-movies" id="filter-all" value="all" checked>
+                <label class="btn btn-outline-light btn-sm" for="filter-all" title="All Movies"><i class="fas fa-list"></i> All</label>
+                
+                <input type="radio" class="btn-check" name="filter-movies" id="filter-watched" value="watched">
+                <label class="btn btn-outline-light btn-sm" for="filter-watched" title="Watched Movies"><i class="fas fa-eye"></i> Watched</label>
+                
+                <input type="radio" class="btn-check" name="filter-movies" id="filter-unwatched" value="unwatched">
+                <label class="btn btn-outline-light btn-sm" for="filter-unwatched" title="Unwatched Movies"><i class="fas fa-eye-slash"></i> Unwatched</label>
+            </div>
+        </div>
+        <div class="sort-container">
+            <label for="sort-movies" class="text-white me-1 small"><i class="fas fa-sort"></i></label>
+            <select id="sort-movies" class="form-select form-select-sm bg-dark text-white w-auto d-inline-block">
+                <option value="-popularity">Popularity (High to Low)</option>
+                <option value="popularity">Popularity (Low to High)</option>
+                <option value="-starRating">Rating (High to Low)</option>
+                <option value="starRating">Rating (Low to High)</option>
+            </select>
+        </div>
     `;
-    container.parentNode.insertBefore(sortContainer, container);
+    container.parentNode.insertBefore(controlsContainer, container);
 
     let currentSort = '-createdAt';
+    let currentFilter = 'all';
 
     document.getElementById('sort-movies').addEventListener('change', (event) => {
         currentSort = event.target.value;
-        renderMovies(currentSort);
+        renderMovies(currentSort, currentFilter);
     });
 
-    async function renderMovies(sortOrder) {
+    document.querySelectorAll('input[name="filter-movies"]').forEach(radio => {
+        radio.addEventListener('change', (event) => {
+            currentFilter = event.target.value;
+            renderMovies(currentSort, currentFilter);
+        });
+    });
+
+    async function renderMovies(sortOrder, filter) {
         try {
             const configRes = await fetch('/api/config');
             const config = await configRes.json();
             const limit = config.contentFetchLimit || 1000;
 
-            const response = await fetch(`/api/content?type=movie&limit=${limit}&sort=${sortOrder}`);
-            const result = await response.json();
-            if (!result.success || !Array.isArray(result.data)) {
-                container.innerHTML = '<div class="text-white">No movies available</div>';
-                return;
+            let movieData = [];
+            
+            if (filter === 'watched' || filter === 'unwatched') {
+                // Get current profile ID from session/cookie
+                const profileId = localStorage.getItem('currentProfileId');
+                if (!profileId) {
+                    container.innerHTML = '<div class="text-white">Please select a profile first</div>';
+                    return;
+                }
+                
+                const endpoint = filter === 'watched' ? 'watched' : 'unwatched';
+                const response = await fetch(`/api/users/profiles/${profileId}/${endpoint}`);
+                const result = await response.json();
+                
+                if (!result.success || !Array.isArray(result.data)) {
+                    container.innerHTML = `<div class="text-white">No ${filter} movies available</div>`;
+                    return;
+                }
+                
+                // Filter only movies
+                movieData = result.data.filter(item => item.type === 'movie');
+            } else {
+                // Get all movies
+                const response = await fetch(`/api/content?type=movie&limit=${limit}&sort=${sortOrder}`);
+                const result = await response.json();
+                if (!result.success || !Array.isArray(result.data)) {
+                    container.innerHTML = '<div class="text-white">No movies available</div>';
+                    return;
+                }
+                movieData = result.data;
             }
 
             const genreToItems = new Map();
-            for (const item of result.data) {
+            for (const item of movieData) {
                 const genres = Array.isArray(item.genre) ? item.genre : [];
                 for (const g of genres) {
                     const key = (g || '').trim();
@@ -86,11 +134,23 @@ async function renderAllMoviesGroupedByGenre() {
         }
     }
 
-    renderMovies(currentSort); // Initial render
+    renderMovies(currentSort, currentFilter); // Initial render
+}
+
+// Store profile ID from URL parameter
+function storeProfileId() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const profileId = urlParams.get('profile');
+    
+    if (profileId) {
+        localStorage.setItem('currentProfileId', profileId);
+        console.log('Profile ID stored:', profileId);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     if (document.body && document.body.dataset && document.body.dataset.page === 'movies') {
+        storeProfileId(); // Store profile ID if present in URL
         renderAllMoviesGroupedByGenre();
     }
 });

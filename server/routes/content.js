@@ -10,11 +10,14 @@ const {
   getTrendingContent,
   getMostPopularContent,
   getNewestMovies,
-  getNewestSeries
+  getNewestSeries,
+  markContentAsWatched
 } = require('../controllers/contentController');
 
+const { requireAuth, requireProfile } = require('../middleware/auth');
+
 // GET /api/content - Get all content with optional filtering
-router.get('/', getAllContent);
+router.get('/', requireAuth, requireProfile, getAllContent);
 
 // GET /api/content/popular - Get most popular content
 router.get('/popular', getMostPopularContent);
@@ -33,6 +36,9 @@ router.get('/genre/:genre', getContentByGenre);
 
 // GET /api/content/:id - Get content by ID
 router.get('/:id', getContentById);
+
+// PUT /api/content/mark-watched - Mark content as watched or unwatched for a profile
+router.put('/mark-watched', markContentAsWatched);
 
 // POST /api/content - Create new content
 router.post('/', createContent);

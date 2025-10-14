@@ -1,7 +1,7 @@
 const Content = require('../models/Content');
-const ViewingHabit = require('../models/ViewingHabit');
+const Profile = require('../models/Profile'); // Added Profile import
 
-const VALID_SORT_FIELDS = ['createdAt', 'year', 'popularity', 'starRating'];
+const VALID_SORT_FIELDS = ['createdAt', 'year', 'popularity', 'starRating', 'watched', 'unwatched'];
 
 // Get all content with optional filtering
 const getAllContent = async (req, res) => {
@@ -357,6 +357,35 @@ const getNewestSeries = async (req, res) => {
   }
 };
 
+const markContentAsWatched = async (req, res) => {
+  try {
+    const { profileId, contentId, watched } = req.body;
+
+    const profile = await Profile.findById(profileId);
+    if (!profile) {
+      return res.status(404).json({ success: false, message: 'Profile not found' });
+    }
+
+    if (watched) {
+      // Add to watchedContent if not already present
+      if (!profile.watchedContent.includes(contentId)) {
+        profile.watchedContent.push(contentId);
+      }
+    } else {
+      // Remove from watchedContent
+      profile.watchedContent = profile.watchedContent.filter(
+        (id) => id.toString() !== contentId
+      );
+    }
+
+    await profile.save();
+
+    res.json({ success: true, message: 'Profile content watch status updated successfully', data: profile });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error updating content watch status', error: error.message });
+  }
+};
+
 module.exports = {
   getAllContent,
   getContentById,
@@ -367,5 +396,6 @@ module.exports = {
   getTrendingContent,
   getMostPopularContent,
   getNewestMovies,
-  getNewestSeries
+  getNewestSeries,
+  markContentAsWatched,
 };
