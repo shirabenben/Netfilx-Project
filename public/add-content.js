@@ -1,6 +1,11 @@
 // Add Content Form JavaScript
 
+// Initialize Bootstrap tooltips
 document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
     const form = document.getElementById('addContentForm');
     const submitBtn = document.getElementById('submitBtn');
     const loadingSpinner = submitBtn.querySelector('.spinner-border');
@@ -34,11 +39,81 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Set loading state
+    // Set loading state for submit button
     function setLoading(loading) {
         submitBtn.disabled = loading;
         loadingSpinner.classList.toggle('d-none', !loading);
     }
+
+    // Set loading state for search button
+    function setSearchLoading(loading, button) {
+        button.disabled = loading;
+        const icon = button.querySelector('i');
+        if (loading) {
+            icon.className = 'fas fa-spinner fa-spin';
+        } else {
+            icon.className = 'fas fa-search';
+        }
+    }
+
+    // Handle rating search
+    const searchRatingBtn = document.getElementById('searchRatingBtn');
+    const ratingResult = document.getElementById('ratingResult');
+
+    searchRatingBtn.addEventListener('click', async function() {
+        const titleInput = document.getElementById('title');
+        const yearInput = document.getElementById('year');
+        const ratingSelect = document.getElementById('rating');
+
+        const title = titleInput.value.trim();
+        const year = yearInput.value ? parseInt(yearInput.value) : null;
+
+        if (!title) {
+            showError('titleError', 'Please enter a title first to search for ratings');
+            return;
+        }
+
+        clearErrors();
+        setSearchLoading(true, searchRatingBtn);
+
+        // Clear previous result
+        ratingResult.textContent = '';
+
+        try {
+            const params = new URLSearchParams({
+                title: title,
+                ...(year && { year: year.toString() })
+            });
+
+            const response = await fetch(`/api/rating-lookup?${params}`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Set the suggested rating
+                ratingSelect.value = result.suggestedRating;
+
+                // Show success message under title with RT details
+                ratingResult.textContent = `${result.title} (${result.year || 'N/A'}) - Rotten Tomatoes: ${result.rtRating}% → Suggested: ${result.suggestedRating}`;
+                ratingResult.style.color = '#28a745'; // Success green
+            } else {
+                // Fallback to a default rating if not found
+                ratingSelect.value = result.suggestedRating || 'TV-14';
+                ratingResult.textContent = result.error || 'Could not find Rotten Tomatoes rating. Using default suggestion.';
+                ratingResult.style.color = '#fd7e14'; // Warning orange
+            }
+        } catch (error) {
+            console.error('Rating search error:', error);
+            ratingResult.textContent = 'Network error while searching for rating';
+            ratingResult.style.color = '#dc3545'; // Error red
+            ratingSelect.value = 'TV-14'; // Default fallback
+        } finally {
+            setSearchLoading(false, searchRatingBtn);
+        }
+    });
 
     form.addEventListener('submit', async function(e) {
         e.preventDefault();

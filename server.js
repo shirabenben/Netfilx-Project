@@ -49,11 +49,13 @@ const userRoutes = require('./server/routes/users');
 const contentRoutes = require('./server/routes/content');
 const catalogRoutes = require('./server/routes/catalogs');
 const viewingHabitRoutes = require('./server/routes/viewingHabits');
+const ratingLookupRoutes = require('./server/routes/ratingLookup');
 
 app.use('/api/users', userRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/catalogs', catalogRoutes);
 app.use('/api/viewing-habits', viewingHabitRoutes);
+app.use('/api/rating-lookup', ratingLookupRoutes);
 
 // Add content form route
 app.get('/add-content', requireAuth, requireProfile, requireAdmin, (req, res) => {

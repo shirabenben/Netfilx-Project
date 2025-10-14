@@ -24,8 +24,15 @@
         <form id="addContentForm">
             <div class="mb-3">
                 <label for="title" class="form-label">Title *</label>
-                <input type="text" class="form-control" id="title" name="title" required maxlength="200" placeholder="Enter content title">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="title" name="title" required maxlength="200" placeholder="Enter content title">
+                    <button type="button" class="btn btn-outline-primary" id="searchRatingBtn" title="Search Rotten Tomatoes rating">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                <small class="text-muted">Click search to auto-fill rating from Rotten Tomatoes</small>
                 <div class="error-message" id="titleError"></div>
+                <div class="success-message" id="ratingResult"></div>
             </div>
 
             <div class="mb-3">
@@ -71,7 +78,7 @@
                 </div>
                 <div class="col-md-4">
                     <div class="mb-3">
-                        <label for="duration" class="form-label">Duration (min) *</label>
+                        <label for="duration" class="form-label" data-bs-toggle="tooltip" data-bs-placement="top" title="Duration in minutes" data-bs-trigger="hover">Duration *</label>
                         <input type="number" class="form-control" id="duration" name="duration" required min="1" placeholder="120">
                         <div class="error-message" id="durationError"></div>
                     </div>
@@ -131,11 +138,13 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-register me-2" id="submitBtn">
-                <span class="spinner-border spinner-border-sm me-2 d-none"></span>
-                Create Content
-            </button>
-            <a href="/homepage" class="btn btn-outline-secondary">Cancel</a>
+            <div class="d-flex flex-column gap-3 align-items-center">
+                <button type="submit" class="btn btn-register w-100" id="submitBtn">
+                    <span class="spinner-border spinner-border-sm me-2 d-none"></span>
+                    Create Content
+                </button>
+                <a href="/homepage" class="btn btn-outline-secondary w-100">Cancel</a>
+            </div>
 
             <div class="success-message mt-3" id="successMessage"></div>
             <div class="error-message mt-3" id="generalError"></div>
