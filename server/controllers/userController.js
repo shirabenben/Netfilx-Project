@@ -297,15 +297,23 @@ const getWatchedContent = async (req, res) => {
   try {
     const { profileId } = req.params;
 
-    const profile = await Profile.findById(profileId).populate('watchedContent');
+    const profile = await Profile.findById(profileId).populate('watchedContent.contentId');
     if (!profile) {
       return res.status(404).json({ success: false, message: 'Profile not found' });
     }
 
+    // Transform the data to include both content details and viewing history metadata
+    const watchedContentWithDetails = profile.watchedContent.map(item => ({
+      content: item.contentId,
+      watchedAt: item.watchedAt,
+      duration: item.duration,
+      _id: item._id
+    }));
+
     res.json({ 
       success: true, 
-      count: profile.watchedContent.length, 
-      data: profile.watchedContent 
+      count: watchedContentWithDetails.length, 
+      data: watchedContentWithDetails 
     });
   } catch (error) {
     res.status(500).json({ 
@@ -321,7 +329,7 @@ const getUnwatchedContent = async (req, res) => {
   try {
     const { profileId } = req.params;
 
-    const profile = await Profile.findById(profileId).populate('watchedContent');
+    const profile = await Profile.findById(profileId);
     if (!profile) {
       return res.status(404).json({ success: false, message: 'Profile not found' });
     }
@@ -330,8 +338,8 @@ const getUnwatchedContent = async (req, res) => {
     const Content = require('../models/Content');
     const allContent = await Content.find({ isActive: true });
 
-    // Get IDs of watched content
-    const watchedIds = profile.watchedContent.map(item => item._id.toString());
+    // Get IDs of watched content (from the contentId field in viewing history)
+    const watchedIds = profile.watchedContent.map(item => item.contentId.toString());
 
     // Filter out watched content to get unwatched content
     const unwatchedContent = allContent.filter(

@@ -76,8 +76,15 @@ async function renderAllSeriesGroupedByGenre() {
                     return;
                 }
                 
-                // Filter only series
-                seriesData = result.data.filter(item => item.type === 'series');
+                // For watched content, extract the content object and filter only series
+                if (filter === 'watched') {
+                    seriesData = result.data
+                        .map(item => item.content)
+                        .filter(content => content && content.type === 'series');
+                } else {
+                    // For unwatched, data is already content objects
+                    seriesData = result.data.filter(item => item.type === 'series');
+                }
             } else {
                 // Get all series
                 const response = await fetch(`/api/content?type=series&limit=${limit}&sort=${sortOrder}`);

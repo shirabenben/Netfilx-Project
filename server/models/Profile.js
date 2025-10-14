@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const viewingHistorySchema = require('./ViewingHistory');
 
 const profileSchema = new mongoose.Schema({
   name: {
@@ -12,10 +13,7 @@ const profileSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  watchedContent: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Content'
-  }]
+  watchedContent: [viewingHistorySchema]
 }, {
   timestamps: true,
   toJSON: { virtuals: true },

@@ -74,8 +74,15 @@ async function renderAllMoviesGroupedByGenre() {
                     return;
                 }
                 
-                // Filter only movies
-                movieData = result.data.filter(item => item.type === 'movie');
+                // For watched content, extract the content object and filter only movies
+                if (filter === 'watched') {
+                    movieData = result.data
+                        .map(item => item.content)
+                        .filter(content => content && content.type === 'movie');
+                } else {
+                    // For unwatched, data is already content objects
+                    movieData = result.data.filter(item => item.type === 'movie');
+                }
             } else {
                 // Get all movies
                 const response = await fetch(`/api/content?type=movie&limit=${limit}&sort=${sortOrder}`);

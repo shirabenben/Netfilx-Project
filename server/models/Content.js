@@ -68,19 +68,7 @@ const contentSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
-  },
-  popularity: {
-    type: Number,
-    default: 1,
-    min: 1  ,
-    max: 5
-  },
-  starRating: {
-    type: Number,
-    default: 3, // Default to 3 stars if not specified
-    min: 1,
-    max: 5
-  },
+  }
 }, {
   timestamps: true
 });
