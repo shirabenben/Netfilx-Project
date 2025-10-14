@@ -10,7 +10,8 @@ const {
   deleteProfile,
   updateUser,
   deleteUser,
-  getUserStatistics
+  getUserStatistics,
+  migrateViewingHistory
 } = require('../controllers/userController');
 
 const { requireAuth, requireProfile, login, logout } = require('../middleware/auth');
@@ -87,6 +88,9 @@ router.get('/statistics-page', requireAuth, async (req, res) => {
 
 // GET /api/users/statistics - Get user statistics data (protected)
 router.get('/statistics', requireAuth, getUserStatistics);
+
+// POST /api/users/migrate-viewing-history - Migrate existing viewing habits to watchedContent (protected)
+router.post('/migrate-viewing-history', requireAuth, migrateViewingHistory);
 
 // POST /api/users/profiles - Create new profile (protected)
 router.post('/profiles', requireAuth, createProfile);

@@ -2,6 +2,7 @@
 
 let dailyViewsChart = null;
 let contentTypeChart = null;
+let genrePopularityChart = null;
 let currentDays = 7;
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -16,6 +17,45 @@ document.addEventListener('DOMContentLoaded', function() {
             loadStatistics(currentDays);
         });
     });
+
+    // Migration button
+    const migrateBtn = document.getElementById('migrate-btn');
+    if (migrateBtn) {
+        migrateBtn.addEventListener('click', async function() {
+            if (!confirm('This will migrate your existing viewing history to enable statistics. Continue?')) {
+                return;
+            }
+
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Migrating...';
+
+            try {
+                const response = await fetch('/api/users/migrate-viewing-history', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert('success', data.message || 'Migration completed successfully!');
+                    // Reload statistics after migration
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    showAlert('danger', data.message || 'Migration failed');
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Migrate Viewing History';
+                }
+            } catch (error) {
+                console.error('Migration error:', error);
+                showAlert('danger', 'An error occurred during migration');
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Migrate Viewing History';
+            }
+        });
+    }
 });
 
 async function loadStatistics(days) {
@@ -61,6 +101,9 @@ function displayStatistics(stats) {
 
     // Create content type chart
     createContentTypeChart(stats.contentTypes);
+
+    // Create genre popularity chart
+    createGenrePopularityChart(stats.contentByGenre);
 
     // Display profile stats
     displayProfileStats(stats.profileStats);
@@ -219,6 +262,99 @@ function createContentTypeChart(contentTypes) {
     });
 }
 
+function createGenrePopularityChart(contentByGenre) {
+    const ctx = document.getElementById('genrePopularityChart');
+    
+    if (!ctx || !contentByGenre || contentByGenre.length === 0) return;
+
+    // Destroy existing chart if it exists
+    if (genrePopularityChart) {
+        genrePopularityChart.destroy();
+    }
+
+    // Color palette for genres
+    const colors = [
+        'rgba(229, 9, 20, 0.8)',     // Netflix red
+        'rgba(249, 115, 22, 0.8)',   // Orange
+        'rgba(59, 130, 246, 0.8)',   // Blue
+        'rgba(139, 92, 246, 0.8)',   // Purple
+        'rgba(34, 197, 94, 0.8)',    // Green
+        'rgba(236, 72, 153, 0.8)',   // Pink
+        'rgba(234, 179, 8, 0.8)',    // Yellow
+        'rgba(14, 165, 233, 0.8)',   // Sky blue
+        'rgba(220, 38, 38, 0.8)',    // Red
+        'rgba(168, 85, 247, 0.8)'    // Violet
+    ];
+
+    const borderColors = colors.map(color => color.replace('0.8', '1'));
+
+    genrePopularityChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: contentByGenre.map(g => g.genre),
+            datasets: [{
+                data: contentByGenre.map(g => g.totalViews),
+                backgroundColor: colors.slice(0, contentByGenre.length),
+                borderColor: borderColors.slice(0, contentByGenre.length),
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'right',
+                    labels: {
+                        color: 'white',
+                        font: {
+                            size: 13
+                        },
+                        padding: 15,
+                        generateLabels: function(chart) {
+                            const data = chart.data;
+                            if (data.labels.length && data.datasets.length) {
+                                return data.labels.map((label, i) => {
+                                    const value = data.datasets[0].data[i];
+                                    const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return {
+                                        text: `${label} - ${value} views (${percentage}%)`,
+                                        fillStyle: data.datasets[0].backgroundColor[i],
+                                        hidden: false,
+                                        index: i
+                                    };
+                                });
+                            }
+                            return [];
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                    titleColor: 'white',
+                    bodyColor: 'white',
+                    borderColor: '#e50914',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            const genreData = contentByGenre[context.dataIndex];
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((genreData.totalViews / total) * 100).toFixed(1);
+                            return [
+                                `Genre: ${genreData.genre}`,
+                                `Total Views: ${genreData.totalViews} (${percentage}%)`,
+                                `Content Items: ${genreData.content.length}`
+                            ];
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
 function displayProfileStats(profileStats) {
     const container = document.getElementById('profile-stats');
     if (!container) return;
@@ -272,8 +408,12 @@ function showNoData() {
 }
 
 function showError(message) {
+    showAlert('danger', message);
+}
+
+function showAlert(type, message) {
     const alertDiv = document.createElement('div');
-    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
     alertDiv.style.position = 'fixed';
     alertDiv.style.top = '80px';
     alertDiv.style.right = '20px';

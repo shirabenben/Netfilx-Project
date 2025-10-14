@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Profile = require('../models/Profile');
 const ViewingHabit = require('../models/ViewingHabit');
+const Content = require('../models/Content');
 
 // Get all users
 const getAllUsers = async (req, res) => {
@@ -517,6 +518,66 @@ const getUserStatistics = async (req, res) => {
       count
     }));
 
+    // Calculate content popularity by genre
+    // First, get all content and count their views
+    const contentViewCounts = new Map();
+    allViewingHistory.forEach(vh => {
+      if (vh.content && vh.content._id) {
+        const contentId = vh.content._id.toString();
+        contentViewCounts.set(contentId, (contentViewCounts.get(contentId) || 0) + 1);
+      }
+    });
+
+    // Get all content items with their genres
+    const allContent = await Content.find({ isActive: true });
+    
+    // Organize content by genre
+    const contentByGenre = new Map();
+    
+    allContent.forEach(content => {
+      const contentId = content._id.toString();
+      const viewCount = contentViewCounts.get(contentId) || 0;
+      
+      // Only include content that has been viewed
+      if (viewCount > 0 && content.genre && Array.isArray(content.genre)) {
+        content.genre.forEach(genreName => {
+          if (!contentByGenre.has(genreName)) {
+            contentByGenre.set(genreName, []);
+          }
+          
+          contentByGenre.get(genreName).push({
+            contentId: contentId,
+            title: content.title,
+            type: content.type,
+            popularity: content.popularity || 1,
+            views: viewCount
+          });
+        });
+      }
+    });
+
+    // Convert to array format and sort
+    stats.contentByGenre = Array.from(contentByGenre.entries())
+      .map(([genre, contents]) => {
+        const totalViews = contents.reduce((sum, c) => sum + c.views, 0);
+        
+        // Sort by views descending, then by popularity
+        const sortedContent = contents
+          .sort((a, b) => {
+            if (b.views !== a.views) return b.views - a.views;
+            return b.popularity - a.popularity;
+          })
+          .slice(0, 5); // Top 5 content per genre
+        
+        return {
+          genre,
+          totalViews,
+          content: sortedContent
+        };
+      })
+      .sort((a, b) => b.totalViews - a.totalViews)
+      .slice(0, 6); // Top 6 genres
+
     res.json({
       success: true,
       data: stats
@@ -532,6 +593,59 @@ const getUserStatistics = async (req, res) => {
   }
 };
 
+// Migrate existing viewing habits to profile watchedContent
+const migrateViewingHistory = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    
+    // Get user's profiles
+    const user = await User.findById(userId).populate('profiles');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    let totalMigrated = 0;
+    
+    // For each profile, get viewing habits and add to watchedContent
+    for (const profile of user.profiles) {
+      // Get all viewing habits for this profile
+      const viewingHabits = await ViewingHabit.find({ profile: profile._id }).populate('content');
+      
+      // Clear existing watchedContent to avoid duplicates
+      profile.watchedContent = [];
+      
+      // Add each viewing habit to watchedContent
+      viewingHabits.forEach(vh => {
+        profile.watchedContent.push({
+          contentId: vh.content._id,
+          watchedAt: vh.lastWatched || vh.updatedAt,
+          duration: vh.watchProgress || 0
+        });
+        totalMigrated++;
+      });
+      
+      await profile.save();
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully migrated ${totalMigrated} viewing records`,
+      profilesUpdated: user.profiles.length
+    });
+
+  } catch (error) {
+    console.error('Error migrating viewing history:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error migrating viewing history',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -542,5 +656,6 @@ module.exports = {
   deleteProfile,
   updateUser,
   deleteUser,
-  getUserStatistics
+  getUserStatistics,
+  migrateViewingHistory
 };

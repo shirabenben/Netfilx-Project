@@ -190,6 +190,45 @@
             opacity: 0.5;
         }
 
+        .genre-chart-card {
+            background: rgba(71, 71, 71, 0.4);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 1px solid #444;
+        }
+
+        .genre-chart-title {
+            color: white;
+            font-size: 1.3rem;
+            font-weight: 500;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e50914;
+            padding-bottom: 10px;
+        }
+
+        .genre-total-views {
+            font-size: 0.9rem;
+            color: #999;
+            font-weight: 400;
+        }
+
+        .genre-chart-container {
+            height: 250px;
+            margin-top: 15px;
+        }
+
+        .genre-chart-container-pie {
+            height: 300px;
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         .date-range-selector {
             display: flex;
             justify-content: center;
@@ -340,6 +379,16 @@
                     <canvas id="contentTypeChart"></canvas>
                 </div>
             </div>
+
+            <!-- Content Popularity by Genre -->
+            <div class="stats-card">
+                <h2 class="stats-card-title">
+                    <i class="fas fa-theater-masks me-2"></i>Content Popularity by Genre
+                </h2>
+                <div class="chart-container" style="height: 400px;">
+                    <canvas id="genrePopularityChart"></canvas>
+                </div>
+            </div>
         </div>
 
         <!-- No Data Message -->
@@ -347,7 +396,10 @@
             <div class="no-data-message">
                 <i class="fas fa-chart-line"></i>
                 <h3 style="color: white; margin-bottom: 15px;">No Viewing Data Available</h3>
-                <p>Start watching content to see your statistics here!</p>
+                <p>If you have watched content but don't see statistics, click the button below to migrate your viewing history.</p>
+                <button id="migrate-btn" class="btn btn-warning mt-3 me-2">
+                    <i class="fas fa-sync-alt me-2"></i>Migrate Viewing History
+                </button>
                 <a href="/homepage" class="btn btn-danger mt-3">
                     <i class="fas fa-play me-2"></i>Browse Content
                 </a>
