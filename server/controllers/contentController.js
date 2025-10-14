@@ -1,6 +1,8 @@
 const Content = require('../models/Content');
 const ViewingHabit = require('../models/ViewingHabit');
 
+const VALID_SORT_FIELDS = ['createdAt', 'year', 'popularity', 'starRating'];
+
 // Get all content with optional filtering
 const getAllContent = async (req, res) => {
   try {
@@ -12,8 +14,18 @@ const getAllContent = async (req, res) => {
       type,
       year,
       search,
-      sort = '-createdAt'
+      sort = '-createdAt' // Default sort
     } = req.query;
+
+    // Determine actual sort field and order
+    let sortField = '-createdAt';
+    if (sort) {
+      const sortOrder = sort.startsWith('-') ? -1 : 1;
+      const field = sort.startsWith('-') ? sort.substring(1) : sort;
+      if (VALID_SORT_FIELDS.includes(field)) {
+        sortField = { [field]: sortOrder };
+      }
+    }
 
     // 2. Build the query object
     const query = { isActive: true };
@@ -38,7 +50,7 @@ const getAllContent = async (req, res) => {
     // 4. Execute queries in parallel for efficiency
     const [results, totalDocs] = await Promise.all([
         Content.find(query)
-            .sort(sort)
+            .sort(sortField)
             .skip(skip)
             .limit(limitNum)
             .select('-__v')

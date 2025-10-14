@@ -6,10 +6,17 @@ function createContentCard(content, showViewCount = false) {
     const viewCountBadge = showViewCount && content.viewCount ? 
         `<span class="badge bg-danger position-absolute top-0 end-0 m-2">${content.viewCount} views</span>` : '';
     
+    // Add star rating display
+    const starRatingDisplay = content.starRating ? 
+        `<div class="star-rating-badge position-absolute bottom-0 end-0 m-2 badge bg-warning text-dark">
+            <i class="fas fa-star"></i> ${content.starRating}
+        </div>` : '';
+
     return `
         <div class="content-item">
             <div class="content-card position-relative">
                 ${viewCountBadge}
+                ${starRatingDisplay}
                 <img src="${imageUrl}" class="content-poster" alt="${content.title}">
                 <div class="content-overlay">
                     <h6 class="content-title">${content.title}</h6>
