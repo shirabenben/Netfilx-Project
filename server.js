@@ -1,4 +1,6 @@
 require('dotenv').config();
+// import dotenv from 'dotenv';
+// dotenv.config();
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
@@ -54,6 +56,14 @@ app.use('/api/users', userRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/catalogs', catalogRoutes);
 app.use('/api/viewing-habits', viewingHabitRoutes);
+
+// Config endpoint to expose client settings
+app.get('/api/config', (req, res) => {
+  // Fetch config to get limit
+  res.json({
+    contentFetchLimit: parseInt(process.env.CONTENT_FETCH_LIMIT || '1000', 10)
+  });
+});
 
 // Main homepage route
 app.get('/homepage', requireAuth, requireProfile, (req, res) => {

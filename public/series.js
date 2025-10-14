@@ -7,7 +7,12 @@ async function renderAllSeriesGroupedByGenre() {
     if (!container) return;
 
     try {
-        const response = await fetch('/api/content?type=series&limit=1000&sort=-createdAt');
+        // Fetch config to get limit
+        const configRes = await fetch('/api/config');
+        const config = await configRes.json();
+        const limit = config.contentFetchLimit || 1000;
+
+        const response = await fetch(`/api/content?type=series&limit=${limit}&sort=-createdAt`);
         const result = await response.json();
         if (!result.success || !Array.isArray(result.data)) {
             container.innerHTML = '<div class="text-white">No series available</div>';

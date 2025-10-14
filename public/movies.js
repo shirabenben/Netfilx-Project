@@ -1,13 +1,16 @@
 // Movies page logic: render all movies grouped by genre
 
 // ContentSlider provided by shared.js
-
 async function renderAllMoviesGroupedByGenre() {
     const container = document.getElementById('genre-sliders');
     if (!container) return;
 
     try {
-        const response = await fetch('/api/content?type=movie&limit=1000&sort=-createdAt');
+        const configRes = await fetch('/api/config');
+        const config = await configRes.json();
+        const limit = config.contentFetchLimit || 1000;
+
+        const response = await fetch(`/api/content?type=movie&limit=${limit}&sort=-createdAt`);
         const result = await response.json();
         if (!result.success || !Array.isArray(result.data)) {
             container.innerHTML = '<div class="text-white">No movies available</div>';
