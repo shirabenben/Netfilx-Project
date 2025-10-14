@@ -292,12 +292,124 @@ const createProfile = async (req, res) => {
   }
 };
 
+// Update profile
+const updateProfile = async (req, res) => {
+  try {
+    const { name } = req.body;
+    const profileId = req.params.id;
+    const userId = req.user._id;
+
+    // Find the profile
+    const profile = await Profile.findById(profileId);
+
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: 'Profile not found'
+      });
+    }
+
+    // Verify that the profile belongs to the authenticated user
+    if (profile.user.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized to update this profile'
+      });
+    }
+
+    // Update the profile
+    profile.name = name || profile.name;
+    await profile.save();
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: profile
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Profile name already exists for this user'
+      });
+    }
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error',
+        errors
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Error updating profile',
+      error: error.message
+    });
+  }
+};
+
+// Delete profile
+const deleteProfile = async (req, res) => {
+  try {
+    const profileId = req.params.id;
+    const userId = req.user._id;
+
+    // Find the profile
+    const profile = await Profile.findById(profileId);
+
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: 'Profile not found'
+      });
+    }
+
+    // Verify that the profile belongs to the authenticated user
+    if (profile.user.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized to delete this profile'
+      });
+    }
+
+    // Check if user has only one profile (prevent deletion of last profile)
+    const user = await User.findById(userId).populate('profiles');
+    if (user.profiles.length <= 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete the last profile. Each user must have at least one profile'
+      });
+    }
+
+    // Remove profile from user's profiles array
+    user.profiles = user.profiles.filter(p => p._id.toString() !== profileId.toString());
+    await user.save();
+
+    // Delete the profile
+    await Profile.findByIdAndDelete(profileId);
+
+    res.json({
+      success: true,
+      message: 'Profile deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting profile',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
   createUser,
   getUserProfiles,
   createProfile,
+  updateProfile,
+  deleteProfile,
   updateUser,
   deleteUser
 };
