@@ -6,7 +6,7 @@ const MongoStore = require('connect-mongo');
 const path = require('path');
 
 // Import required middleware and controllers
-const { requireAuth, requireProfile } = require('./server/middleware/auth');
+const { requireAuth, requireProfile, requireAdmin } = require('./server/middleware/auth');
 const { getUserProfiles } = require('./server/controllers/userController');
 
 const app = express();
@@ -55,9 +55,19 @@ app.use('/api/content', contentRoutes);
 app.use('/api/catalogs', catalogRoutes);
 app.use('/api/viewing-habits', viewingHabitRoutes);
 
+// Add content form route
+app.get('/add-content', requireAuth, requireProfile, requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'add-content.html'));
+});
+
+// API route to create content (admin only)
+app.post('/add-content', requireAuth, requireProfile, requireAdmin, (req, res) => {
+  res.redirect('/homepage'); // Or handle content creation here - for now redirect to homepage
+});
+
 // Main homepage route
 app.get('/homepage', requireAuth, requireProfile, (req, res) => {
-  res.render('homepage', { 
+  res.render('homepage', {
     title: 'Netflix Project',
     profile: req.profile,
     user: req.user
