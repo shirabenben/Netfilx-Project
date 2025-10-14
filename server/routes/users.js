@@ -9,7 +9,8 @@ const {
   updateProfile,
   deleteProfile,
   updateUser,
-  deleteUser
+  deleteUser,
+  getUserStatistics
 } = require('../controllers/userController');
 
 const { requireAuth, requireProfile, login, logout } = require('../middleware/auth');
@@ -56,6 +57,36 @@ router.get('/settings', requireAuth, async (req, res) => {
     });
   }
 });
+
+// GET /api/users/statistics - Statistics page (protected)
+router.get('/statistics-page', requireAuth, async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const user = await User.findById(req.user._id).populate('profiles');
+    
+    if (!user) {
+      return res.status(404).render('error', {
+        title: 'Error',
+        message: 'User not found'
+      });
+    }
+
+    res.render('statistics', {
+      title: 'Statistics',
+      profiles: user.profiles,
+      user: user
+    });
+  } catch (error) {
+    console.error('Error loading statistics page:', error);
+    res.status(500).render('error', {
+      title: 'Error',
+      message: 'Error loading statistics page'
+    });
+  }
+});
+
+// GET /api/users/statistics - Get user statistics data (protected)
+router.get('/statistics', requireAuth, getUserStatistics);
 
 // POST /api/users/profiles - Create new profile (protected)
 router.post('/profiles', requireAuth, createProfile);

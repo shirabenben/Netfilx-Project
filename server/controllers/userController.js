@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Profile = require('../models/Profile');
+const ViewingHabit = require('../models/ViewingHabit');
 
 // Get all users
 const getAllUsers = async (req, res) => {
@@ -402,6 +403,135 @@ const deleteProfile = async (req, res) => {
   }
 };
 
+// Get user statistics
+const getUserStatistics = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const days = parseInt(req.query.days) || 7;
+    
+    // Get user's profiles with populated watched content
+    const user = await User.findById(userId).populate({
+      path: 'profiles',
+      populate: {
+        path: 'watchedContent.contentId',
+        model: 'Content'
+      }
+    });
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Calculate date range
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Get all viewing history from all profiles within date range
+    const allViewingHistory = [];
+    user.profiles.forEach(profile => {
+      if (profile.watchedContent && profile.watchedContent.length > 0) {
+        profile.watchedContent.forEach(watch => {
+          if (watch.watchedAt >= startDate && watch.watchedAt <= endDate) {
+            allViewingHistory.push({
+              profile: profile,
+              content: watch.contentId,
+              watchedAt: watch.watchedAt,
+              duration: watch.duration
+            });
+          }
+        });
+      }
+    });
+
+    // Get viewing habits for liked content count
+    const profileIds = user.profiles.map(p => p._id);
+    const viewingHabits = await ViewingHabit.find({
+      profile: { $in: profileIds }
+    });
+
+    // Calculate statistics
+    const stats = {
+      totalViews: allViewingHistory.length,
+      uniqueContent: new Set(allViewingHistory.map(vh => vh.content?._id.toString()).filter(Boolean)).size,
+      totalHours: allViewingHistory.reduce((sum, vh) => sum + ((vh.duration || 0) / 3600), 0),
+      likedContent: viewingHabits.filter(vh => vh.liked).length,
+      dailyViews: [],
+      profiles: user.profiles.map(p => ({ id: p._id.toString(), name: p.name })),
+      profileStats: [],
+      contentTypes: []
+    };
+
+    // Generate daily views data
+    const dailyViewsMap = new Map();
+    for (let i = 0; i < days; i++) {
+      const date = new Date(startDate);
+      date.setDate(date.getDate() + i);
+      const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      dailyViewsMap.set(dateStr, {
+        date: dateStr,
+        profiles: user.profiles.map(p => ({ profileId: p._id.toString(), count: 0 }))
+      });
+    }
+
+    // Count views per day per profile from watching history
+    allViewingHistory.forEach(vh => {
+      const dateStr = new Date(vh.watchedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const dayData = dailyViewsMap.get(dateStr);
+      if (dayData) {
+        const profileData = dayData.profiles.find(p => p.profileId === vh.profile._id.toString());
+        if (profileData) {
+          profileData.count++;
+        }
+      }
+    });
+
+    stats.dailyViews = Array.from(dailyViewsMap.values());
+
+    // Calculate profile stats
+    stats.profileStats = user.profiles.map(profile => {
+      const profileViews = allViewingHistory.filter(vh => vh.profile._id.toString() === profile._id.toString());
+      const profileHabits = viewingHabits.filter(vh => vh.profile.toString() === profile._id.toString());
+      return {
+        name: profile.name,
+        views: profileViews.length,
+        hours: profileViews.reduce((sum, vh) => sum + ((vh.duration || 0) / 3600), 0),
+        favorites: profileHabits.filter(vh => vh.liked).length
+      };
+    });
+
+    // Calculate content type distribution
+    const contentTypeMap = new Map();
+    allViewingHistory.forEach(vh => {
+      if (vh.content && vh.content.type) {
+        const type = vh.content.type;
+        contentTypeMap.set(type, (contentTypeMap.get(type) || 0) + 1);
+      }
+    });
+
+    stats.contentTypes = Array.from(contentTypeMap.entries()).map(([type, count]) => ({
+      type: type.charAt(0).toUpperCase() + type.slice(1),
+      count
+    }));
+
+    res.json({
+      success: true,
+      data: stats
+    });
+
+  } catch (error) {
+    console.error('Error fetching statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching statistics',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -411,5 +541,6 @@ module.exports = {
   updateProfile,
   deleteProfile,
   updateUser,
-  deleteUser
+  deleteUser,
+  getUserStatistics
 };
