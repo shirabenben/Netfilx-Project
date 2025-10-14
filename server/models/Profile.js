@@ -11,7 +11,15 @@ const profileSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
+  },
+
+  // Stores the last watch position for each content item
+  watchProgress: {
+    type: Map,
+    of: Number, // stores the last watched time in seconds
+    default: {}
   }
+
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
@@ -35,4 +43,4 @@ profileSchema.virtual('catalogs', {
 // Ensure unique profile names per user
 profileSchema.index({ user: 1, name: 1 }, { unique: true });
 
-module.exports = mongoose.model('Profile', profileSchema);
+module.exports = mongoose.models.Profile || mongoose.model('Profile', profileSchema);

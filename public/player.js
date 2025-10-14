@@ -1,38 +1,140 @@
 const video = document.getElementById('video-player');
 const playPauseBtn = document.getElementById('play-pause');
-const rewindBtn = document.getElementById('rewind');
-const forwardBtn = document.getElementById('forward');
+const back10Btn = document.getElementById('rewind');
+const forward10Btn = document.getElementById('forward');
 const fullscreenBtn = document.getElementById('fullscreen');
 const timeline = document.getElementById('timeline');
+const nextEpisodeBtn = document.getElementById('nextEpisode');
+const toggleEpisodesBtn = document.getElementById('toggleEpisodes');
+const episodesOverlay = document.getElementById('episodesOverlay');
+const closeOverlayBtn = document.getElementById('closeOverlay');
 
-// Play/Pause
+// IDs passed from server-side template
+const profileId = window.PROFILE_ID;
+const contentId = window.CONTENT_ID;
+
+// Episodes list from server
+const episodes = window.EPISODES || [];
+const currentIndex = episodes.findIndex(ep => ep._id === contentId);
+
+// --------------------- VIDEO CONTROLS ---------------------
+
+// Play / Pause
 playPauseBtn.addEventListener('click', () => {
   if (video.paused) video.play();
   else video.pause();
 });
 
-// Rewind 10s
-rewindBtn.addEventListener('click', () => {
+// Backward 10s
+back10Btn.addEventListener('click', () => {
   video.currentTime = Math.max(video.currentTime - 10, 0);
 });
 
 // Forward 10s
-forwardBtn.addEventListener('click', () => {
+forward10Btn.addEventListener('click', () => {
   video.currentTime = Math.min(video.currentTime + 10, video.duration);
-});
-
-// Fullscreen
-fullscreenBtn.addEventListener('click', () => {
-  if (video.requestFullscreen) video.requestFullscreen();
-  else if (video.webkitRequestFullscreen) video.webkitRequestFullscreen();
-  else if (video.msRequestFullscreen) video.msRequestFullscreen();
 });
 
 // Timeline update
 video.addEventListener('timeupdate', () => {
-  timeline.value = (video.currentTime / video.duration) * 100 || 0;
+  timeline.max = video.duration;
+  timeline.value = video.currentTime;
 });
 
+// Timeline seek
 timeline.addEventListener('input', () => {
-  video.currentTime = (timeline.value / 100) * video.duration;
+  video.currentTime = timeline.value;
+});
+
+// Fullscreen toggle
+fullscreenBtn.addEventListener('click', () => {
+  if (!document.fullscreenElement) {
+    if (video.requestFullscreen) video.requestFullscreen();
+    else if (video.webkitRequestFullscreen) video.webkitRequestFullscreen();
+    else if (video.msRequestFullscreen) video.msRequestFullscreen();
+  } else {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    else if (document.msExitFullscreen) document.msExitFullscreen();
+  }
+});
+
+// Next episode
+if (currentIndex === -1 || currentIndex === episodes.length - 1) {
+  nextEpisodeBtn.disabled = true;
+  nextEpisodeBtn.style.opacity = 0.5;
+  nextEpisodeBtn.style.cursor = 'not-allowed';
+} else {
+  nextEpisodeBtn.addEventListener('click', () => {
+    window.location.href = `/player/${episodes[currentIndex + 1]._id}`;
+  });
+}
+
+// Toggle episodes overlay
+toggleEpisodesBtn.addEventListener('click', () => {
+  episodesOverlay.classList.add('active');
+});
+
+// Close overlay
+closeOverlayBtn.addEventListener('click', () => {
+  episodesOverlay.classList.remove('active');
+});
+
+// --------------------- WATCH PROGRESS ---------------------
+
+// Fetch last watched position when video loads
+window.addEventListener('load', async () => {
+  try {
+    if (!profileId) return; // אם אין פרופיל, לא מבצעים
+    const res = await fetch(`/watch-progress/${profileId}/${contentId}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.position) {
+        video.currentTime = data.position;
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching watch progress:', err);
+  }
+});
+
+// Save progress periodically (every 5 seconds)
+setInterval(async () => {
+  try {
+    if (!profileId) return; // אם אין פרופיל, לא שומרים
+    if (!video.paused) {
+      await fetch('/watch-progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          profileId,
+          contentId,
+          position: video.currentTime
+        })
+      });
+    }
+  } catch (err) {
+    console.error('Error saving watch progress:', err);
+  }
+}, 5000);
+
+// --------------------- OPTIONAL: Keyboard Shortcuts ---------------------
+document.addEventListener('keydown', (e) => {
+  switch(e.code) {
+    case 'Space':
+      e.preventDefault();
+      if (video.paused) video.play();
+      else video.pause();
+      break;
+    case 'ArrowLeft':
+      video.currentTime = Math.max(video.currentTime - 10, 0);
+      break;
+    case 'ArrowRight':
+      video.currentTime = Math.min(video.currentTime + 10, video.duration);
+      break;
+    case 'KeyF':
+      if (!document.fullscreenElement) video.requestFullscreen();
+      else document.exitFullscreen();
+      break;
+  }
 });

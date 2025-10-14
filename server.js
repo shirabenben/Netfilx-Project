@@ -51,6 +51,8 @@ const catalogRoutes = require('./server/routes/catalogs');
 const viewingHabitRoutes = require('./server/routes/viewingHabits');
 const playerRoutes = require('./server/routes/player');
 const Content = require('./server/models/Content');
+const watchProgressRoutes = require('./server/routes/watchProgress');
+
 
 
 app.use('/player', playerRoutes);
@@ -58,6 +60,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/catalogs', catalogRoutes);
 app.use('/api/viewing-habits', viewingHabitRoutes);
+app.use('/watch-progress', watchProgressRoutes);
+
 
 // Main homepage route
 app.get('/homepage', requireAuth, requireProfile, (req, res) => {
