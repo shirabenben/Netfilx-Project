@@ -1,9 +1,15 @@
 const ViewingHabit = require('../models/ViewingHabit');
+const Profile = require('../models/Profile');
 
-// Get all viewing habits for a user
+// Get all viewing habits for a profile
 exports.getAllViewingHabits = async (req, res) => {
   try {
-    const viewingHabits = await ViewingHabit.find({ user: req.user.id }).populate('content');
+    const profileId = req.query.profileId || req.profile?._id;
+    if (!profileId) {
+      return res.status(400).json({ message: 'Profile ID required' });
+    }
+    
+    const viewingHabits = await ViewingHabit.find({ profile: profileId }).populate('content');
     res.json(viewingHabits);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -13,7 +19,12 @@ exports.getAllViewingHabits = async (req, res) => {
 // Get a specific viewing habit
 exports.getViewingHabit = async (req, res) => {
   try {
-    const viewingHabit = await ViewingHabit.findOne({ user: req.user.id, content: req.params.contentId });
+    const profileId = req.query.profileId || req.profile?._id;
+    if (!profileId) {
+      return res.status(400).json({ message: 'Profile ID required' });
+    }
+    
+    const viewingHabit = await ViewingHabit.findOne({ profile: profileId, content: req.params.contentId });
     if (!viewingHabit) {
       return res.status(404).json({ message: 'Viewing habit not found' });
     }
@@ -23,30 +34,48 @@ exports.getViewingHabit = async (req, res) => {
   }
 };
 
-// Create or update a viewing habit
+// Create or update a viewing habit and add to profile's watchedContent
 exports.createOrUpdateViewingHabit = async (req, res) => {
-  const { contentId, watchProgress, liked } = req.body;
+  const { contentId, watchProgress, liked, profileId, duration } = req.body;
 
   try {
-    let viewingHabit = await ViewingHabit.findOne({ user: req.user.id, content: contentId });
+    const profile_Id = profileId || req.profile?._id;
+    if (!profile_Id) {
+      return res.status(400).json({ message: 'Profile ID required' });
+    }
+
+    // Update or create viewing habit
+    let viewingHabit = await ViewingHabit.findOne({ profile: profile_Id, content: contentId });
 
     if (viewingHabit) {
       // Update existing habit
-      viewingHabit.watchProgress = watchProgress || viewingHabit.watchProgress;
+      viewingHabit.watchProgress = watchProgress !== undefined ? watchProgress : viewingHabit.watchProgress;
       viewingHabit.liked = liked !== undefined ? liked : viewingHabit.liked;
       viewingHabit.lastWatched = Date.now();
     } else {
       // Create new habit
       viewingHabit = new ViewingHabit({
-        user: req.user.id,
+        profile: profile_Id,
         content: contentId,
-        watchProgress,
-        liked
+        watchProgress: watchProgress || 0,
+        liked: liked || false
       });
     }
 
-    const updatedHabit = await viewingHabit.save();
-    res.status(201).json(updatedHabit);
+    await viewingHabit.save();
+
+    // Add to profile's watchedContent array for statistics
+    const profile = await Profile.findById(profile_Id);
+    if (profile) {
+      profile.watchedContent.push({
+        contentId: contentId,
+        watchedAt: new Date(),
+        duration: duration || 0
+      });
+      await profile.save();
+    }
+
+    res.status(201).json(viewingHabit);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -55,7 +84,12 @@ exports.createOrUpdateViewingHabit = async (req, res) => {
 // Delete a viewing habit
 exports.deleteViewingHabit = async (req, res) => {
   try {
-    const viewingHabit = await ViewingHabit.findOneAndDelete({ user: req.user.id, content: req.params.contentId });
+    const profileId = req.query.profileId || req.profile?._id;
+    if (!profileId) {
+      return res.status(400).json({ message: 'Profile ID required' });
+    }
+    
+    const viewingHabit = await ViewingHabit.findOneAndDelete({ profile: profileId, content: req.params.contentId });
 
     if (!viewingHabit) {
       return res.status(404).json({ message: 'Viewing habit not found' });
@@ -66,3 +100,4 @@ exports.deleteViewingHabit = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+

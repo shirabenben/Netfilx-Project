@@ -14,6 +14,10 @@ const profileSchema = new mongoose.Schema({
     required: true
   },
   watchedContent: [viewingHistorySchema]
+  watchedContent: {
+    type: [viewingHistorySchema],
+    default: []
+  }
 }, {
   timestamps: true,
   toJSON: { virtuals: true },

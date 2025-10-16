@@ -1,5 +1,7 @@
 const User = require('../models/User');
 const Profile = require('../models/Profile');
+const ViewingHabit = require('../models/ViewingHabit');
+const Content = require('../models/Content');
 
 // Get all users
 const getAllUsers = async (req, res) => {
@@ -356,6 +358,354 @@ const getUnwatchedContent = async (req, res) => {
       success: false, 
       message: 'Error fetching unwatched content', 
       error: error.message 
+// Update profile
+const updateProfile = async (req, res) => {
+  try {
+    const { name } = req.body;
+    const profileId = req.params.id;
+    const userId = req.user._id;
+
+    // Find the profile
+    const profile = await Profile.findById(profileId);
+
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: 'Profile not found'
+      });
+    }
+
+    // Verify that the profile belongs to the authenticated user
+    if (profile.user.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized to update this profile'
+      });
+    }
+
+    // Update the profile
+    profile.name = name || profile.name;
+    await profile.save();
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: profile
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Profile name already exists for this user'
+      });
+    }
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error',
+        errors
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Error updating profile',
+      error: error.message
+    });
+  }
+};
+
+// Delete profile
+const deleteProfile = async (req, res) => {
+  try {
+    const profileId = req.params.id;
+    const userId = req.user._id;
+
+    // Find the profile
+    const profile = await Profile.findById(profileId);
+
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: 'Profile not found'
+      });
+    }
+
+    // Verify that the profile belongs to the authenticated user
+    if (profile.user.toString() !== userId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized to delete this profile'
+      });
+    }
+
+    // Check if user has only one profile (prevent deletion of last profile)
+    const user = await User.findById(userId).populate('profiles');
+    if (user.profiles.length <= 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete the last profile. Each user must have at least one profile'
+      });
+    }
+
+    // Remove profile from user's profiles array
+    user.profiles = user.profiles.filter(p => p._id.toString() !== profileId.toString());
+    await user.save();
+
+    // Delete the profile
+    await Profile.findByIdAndDelete(profileId);
+
+    res.json({
+      success: true,
+      message: 'Profile deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting profile',
+      error: error.message
+    });
+  }
+};
+
+// Get user statistics
+const getUserStatistics = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const days = parseInt(req.query.days) || 7;
+    
+    // Get user's profiles with populated watched content
+    const user = await User.findById(userId).populate({
+      path: 'profiles',
+      populate: {
+        path: 'watchedContent.contentId',
+        model: 'Content'
+      }
+    });
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Calculate date range
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Get all viewing history from all profiles within date range
+    const allViewingHistory = [];
+    user.profiles.forEach(profile => {
+      if (profile.watchedContent && profile.watchedContent.length > 0) {
+        profile.watchedContent.forEach(watch => {
+          if (watch.watchedAt >= startDate && watch.watchedAt <= endDate) {
+            allViewingHistory.push({
+              profile: profile,
+              content: watch.contentId,
+              watchedAt: watch.watchedAt,
+              duration: watch.duration
+            });
+          }
+        });
+      }
+    });
+
+    // Get viewing habits for liked content count
+    const profileIds = user.profiles.map(p => p._id);
+    const viewingHabits = await ViewingHabit.find({
+      profile: { $in: profileIds }
+    });
+
+    // Calculate statistics
+    const stats = {
+      totalViews: allViewingHistory.length,
+      uniqueContent: new Set(allViewingHistory.map(vh => vh.content?._id.toString()).filter(Boolean)).size,
+      totalHours: allViewingHistory.reduce((sum, vh) => sum + ((vh.duration || 0) / 3600), 0),
+      likedContent: viewingHabits.filter(vh => vh.liked).length,
+      dailyViews: [],
+      profiles: user.profiles.map(p => ({ id: p._id.toString(), name: p.name })),
+      profileStats: [],
+      contentTypes: []
+    };
+
+    // Generate daily views data
+    const dailyViewsMap = new Map();
+    for (let i = 0; i < days; i++) {
+      const date = new Date(startDate);
+      date.setDate(date.getDate() + i);
+      const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      dailyViewsMap.set(dateStr, {
+        date: dateStr,
+        profiles: user.profiles.map(p => ({ profileId: p._id.toString(), count: 0 }))
+      });
+    }
+
+    // Count views per day per profile from watching history
+    allViewingHistory.forEach(vh => {
+      const dateStr = new Date(vh.watchedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const dayData = dailyViewsMap.get(dateStr);
+      if (dayData) {
+        const profileData = dayData.profiles.find(p => p.profileId === vh.profile._id.toString());
+        if (profileData) {
+          profileData.count++;
+        }
+      }
+    });
+
+    stats.dailyViews = Array.from(dailyViewsMap.values());
+
+    // Calculate profile stats
+    stats.profileStats = user.profiles.map(profile => {
+      const profileViews = allViewingHistory.filter(vh => vh.profile._id.toString() === profile._id.toString());
+      const profileHabits = viewingHabits.filter(vh => vh.profile.toString() === profile._id.toString());
+      return {
+        name: profile.name,
+        views: profileViews.length,
+        hours: profileViews.reduce((sum, vh) => sum + ((vh.duration || 0) / 3600), 0),
+        favorites: profileHabits.filter(vh => vh.liked).length
+      };
+    });
+
+    // Calculate content type distribution
+    const contentTypeMap = new Map();
+    allViewingHistory.forEach(vh => {
+      if (vh.content && vh.content.type) {
+        const type = vh.content.type;
+        contentTypeMap.set(type, (contentTypeMap.get(type) || 0) + 1);
+      }
+    });
+
+    stats.contentTypes = Array.from(contentTypeMap.entries()).map(([type, count]) => ({
+      type: type.charAt(0).toUpperCase() + type.slice(1),
+      count
+    }));
+
+    // Calculate content popularity by genre
+    // First, get all content and count their views
+    const contentViewCounts = new Map();
+    allViewingHistory.forEach(vh => {
+      if (vh.content && vh.content._id) {
+        const contentId = vh.content._id.toString();
+        contentViewCounts.set(contentId, (contentViewCounts.get(contentId) || 0) + 1);
+      }
+    });
+
+    // Get all content items with their genres
+    const allContent = await Content.find({ isActive: true });
+    
+    // Organize content by genre
+    const contentByGenre = new Map();
+    
+    allContent.forEach(content => {
+      const contentId = content._id.toString();
+      const viewCount = contentViewCounts.get(contentId) || 0;
+      
+      // Only include content that has been viewed
+      if (viewCount > 0 && content.genre && Array.isArray(content.genre)) {
+        content.genre.forEach(genreName => {
+          if (!contentByGenre.has(genreName)) {
+            contentByGenre.set(genreName, []);
+          }
+          
+          contentByGenre.get(genreName).push({
+            contentId: contentId,
+            title: content.title,
+            type: content.type,
+            popularity: content.popularity || 1,
+            views: viewCount
+          });
+        });
+      }
+    });
+
+    // Convert to array format and sort
+    stats.contentByGenre = Array.from(contentByGenre.entries())
+      .map(([genre, contents]) => {
+        const totalViews = contents.reduce((sum, c) => sum + c.views, 0);
+        
+        // Sort by views descending, then by popularity
+        const sortedContent = contents
+          .sort((a, b) => {
+            if (b.views !== a.views) return b.views - a.views;
+            return b.popularity - a.popularity;
+          })
+          .slice(0, 5); // Top 5 content per genre
+        
+        return {
+          genre,
+          totalViews,
+          content: sortedContent
+        };
+      })
+      .sort((a, b) => b.totalViews - a.totalViews)
+      .slice(0, 6); // Top 6 genres
+
+    res.json({
+      success: true,
+      data: stats
+    });
+
+  } catch (error) {
+    console.error('Error fetching statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching statistics',
+      error: error.message
+    });
+  }
+};
+
+// Migrate existing viewing habits to profile watchedContent
+const migrateViewingHistory = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    
+    // Get user's profiles
+    const user = await User.findById(userId).populate('profiles');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    let totalMigrated = 0;
+    
+    // For each profile, get viewing habits and add to watchedContent
+    for (const profile of user.profiles) {
+      // Get all viewing habits for this profile
+      const viewingHabits = await ViewingHabit.find({ profile: profile._id }).populate('content');
+      
+      // Clear existing watchedContent to avoid duplicates
+      profile.watchedContent = [];
+      
+      // Add each viewing habit to watchedContent
+      viewingHabits.forEach(vh => {
+        profile.watchedContent.push({
+          contentId: vh.content._id,
+          watchedAt: vh.lastWatched || vh.updatedAt,
+          duration: vh.watchProgress || 0
+        });
+        totalMigrated++;
+      });
+      
+      await profile.save();
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully migrated ${totalMigrated} viewing records`,
+      profilesUpdated: user.profiles.length
+    });
+
+  } catch (error) {
+    console.error('Error migrating viewing history:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error migrating viewing history',
+      error: error.message
     });
   }
 };
@@ -366,8 +716,12 @@ module.exports = {
   createUser,
   getUserProfiles,
   createProfile,
+  updateProfile,
+  deleteProfile,
   updateUser,
   deleteUser,
   getWatchedContent,
   getUnwatchedContent
+  getUserStatistics,
+  migrateViewingHistory
 };
