@@ -6,8 +6,12 @@ const {
   createUser,
   getUserProfiles,
   createProfile,
+  updateProfile,
+  deleteProfile,
   updateUser,
-  deleteUser
+  deleteUser,
+  getUserStatistics,
+  migrateViewingHistory
 } = require('../controllers/userController');
 
 const { requireAuth, requireProfile, login, logout } = require('../middleware/auth');
@@ -27,8 +31,75 @@ router.get('/logout', logout);
 // GET /api/users/profiles - Get user profiles as JSON (protected)
 router.get('/profiles', requireAuth, getUserProfiles);
 
+// GET /api/users/settings - Settings page for managing profiles (protected)
+router.get('/settings', requireAuth, async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const user = await User.findById(req.user._id).populate('profiles');
+    
+    if (!user) {
+      return res.status(404).render('error', {
+        title: 'Error',
+        message: 'User not found'
+      });
+    }
+
+    res.render('settings', {
+      title: 'Manage Profiles',
+      profiles: user.profiles,
+      user: user,
+      profile: req.profile || null
+    });
+  } catch (error) {
+    console.error('Error loading settings:', error);
+    res.status(500).render('error', {
+      title: 'Error',
+      message: 'Error loading settings page'
+    });
+  }
+});
+
+// GET /api/users/statistics - Statistics page (protected)
+router.get('/statistics-page', requireAuth, async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const user = await User.findById(req.user._id).populate('profiles');
+    
+    if (!user) {
+      return res.status(404).render('error', {
+        title: 'Error',
+        message: 'User not found'
+      });
+    }
+
+    res.render('statistics', {
+      title: 'Statistics',
+      profiles: user.profiles,
+      user: user
+    });
+  } catch (error) {
+    console.error('Error loading statistics page:', error);
+    res.status(500).render('error', {
+      title: 'Error',
+      message: 'Error loading statistics page'
+    });
+  }
+});
+
+// GET /api/users/statistics - Get user statistics data (protected)
+router.get('/statistics', requireAuth, getUserStatistics);
+
+// POST /api/users/migrate-viewing-history - Migrate existing viewing habits to watchedContent (protected)
+router.post('/migrate-viewing-history', requireAuth, migrateViewingHistory);
+
 // POST /api/users/profiles - Create new profile (protected)
 router.post('/profiles', requireAuth, createProfile);
+
+// PUT /api/users/profiles/:id - Update profile (protected)
+router.put('/profiles/:id', requireAuth, updateProfile);
+
+// DELETE /api/users/profiles/:id - Delete profile (protected)
+router.delete('/profiles/:id', requireAuth, deleteProfile);
 
 // GET /logout - Logout user  
 router.get('/logout-view', (req, res) => {
