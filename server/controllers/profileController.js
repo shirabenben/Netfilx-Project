@@ -20,35 +20,42 @@ module.exports = {
   },
 
   // Toggle Like
-  toggleLike: async (req, res) => {
-    try {
-      const userId = req.session.userId || req.body.profileId;
-      const contentId = req.body.contentId || req.params.contentId;
+toggleLike: async (req, res) => {
+  try {
+    const userId = req.session.userId || req.body.profileId;
+    const contentId = req.body.contentId || req.params.contentId;
 
-      if (!userId || !contentId) 
-        return res.status(400).json({ success: false, message: 'Missing userId or contentId' });
+    if (!userId || !contentId) 
+      return res.status(400).json({ success: false, message: 'Missing userId or contentId' });
 
-      const user = await User.findById(userId);
-      if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    // מצא את המשתמש וודא ש-likedContent מוגדר
+    const user = await User.findById(userId).populate('likedContent');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-      const index = user.likedContent.indexOf(contentId);
-      let liked = false;
+    if (!user.likedContent) user.likedContent = [];
 
-      if (index === -1) {
-        user.likedContent.push(contentId);
-        liked = true;
-      } else {
-        user.likedContent.splice(index, 1);
-        liked = false;
-      }
+    // toggle like
+    const index = user.likedContent.findIndex(item => {
+      // אם item הוא אובייקט populated, השווה _id, אחרת השווה ישירות
+      return item._id ? item._id.toString() === contentId : item.toString() === contentId;
+    });
 
-      await user.save();
-      res.json({ success: true, liked });
-
-    } catch (err) {
-      console.error('Error in toggleLike:', err);
-      res.status(500).json({ success: false, message: 'Server error' });
+    let liked = false;
+    if (index === -1) {
+      user.likedContent.push(contentId);
+      liked = true;
+    } else {
+      user.likedContent.splice(index, 1);
+      liked = false;
     }
+
+    await user.save();
+    res.json({ success: true, liked });
+
+  } catch (err) {
+    console.error('Error in toggleLike:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
+}
 
 };

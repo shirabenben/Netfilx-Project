@@ -30,7 +30,7 @@
     }
   </style>
 </head>
-<body class="bg-dark text-light">
+<body class="bg-dark text-light" data-profile-id="<%= profile._id %>" data-content-id="<%= content._id %>">
   <div class="container py-4">
 
     <!-- Content info -->
@@ -80,10 +80,13 @@
       %>
 
       <% if (content.type === 'series' && allEpisodesWatched && episodes.length > 0) { %>
-        <button id="replay-series-btn" class="btn btn-warning"
-          data-first-episode-id="<%= firstEpisodeId %>">
-          🔁 Watch Series Again
-        </button>
+      <button 
+        id="replay-series-btn"
+        class="btn btn-warning"
+        data-first-episode-id="<%= firstEpisodeId %>"
+        data-episode-ids='<%- JSON.stringify(episodes.map(e => e._id)) %>'>
+        🔁 Watch Series Again
+      </button>
       <% } %>
     </div>
 
@@ -144,55 +147,13 @@
     </div>
 
   </div>
+  <script>
+  window.profileId = "<%= profile._id %>";
+  window.contentId = "<%= content._id %>";
+  window.episodeIds = <%- JSON.stringify(content.episodes ? content.episodes.map(e => e._id) : []) %>;
 
-<script>
-  const profileId = "<%= profileId %>";
-  const contentId = "<%= content._id %>";
-
-  document.addEventListener('DOMContentLoaded', async () => {
-    const likeBtn = document.getElementById('like-btn');
-
-    // Fetch initial like status
-    try {
-      const res = await fetch(`/watch-progress/${profileId}/${contentId}`);
-      const data = await res.json();
-      if (data.liked) {
-        likeBtn.classList.add('btn-success');
-        likeBtn.classList.remove('btn-outline-success');
-        likeBtn.textContent = '♥ Liked';
-      } else {
-        likeBtn.classList.add('btn-outline-success');
-        likeBtn.classList.remove('btn-success');
-        likeBtn.textContent = '♡ Like';
-      }
-    } catch (err) {
-      console.error('Error fetching like status:', err);
-    }
-
-    // Like / Unlike toggle
-    likeBtn.addEventListener('click', async () => {
-      try {
-        const res = await fetch('/watch-progress/like', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ profileId, contentId })
-        });
-        const result = await res.json();
-        if (result.liked) {
-          likeBtn.classList.add('btn-success');
-          likeBtn.classList.remove('btn-outline-success');
-          likeBtn.textContent = '♥ Liked';
-        } else {
-          likeBtn.classList.add('btn-outline-success');
-          likeBtn.classList.remove('btn-success');
-          likeBtn.textContent = '♡ Like';
-        }
-      } catch (err) {
-        console.error('Error toggling like:', err);
-      }
-    });
-  });
 </script>
-
+  <!-- קובץ הסקריפט החיצוני לכל הכפתורים -->
+  <script src="/content.js"></script>
 </body>
 </html>
