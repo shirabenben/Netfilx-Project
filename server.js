@@ -1,4 +1,6 @@
 require('dotenv').config();
+// import dotenv from 'dotenv';
+// dotenv.config();
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
@@ -67,6 +69,14 @@ app.post('/add-content', requireAuth, requireProfile, requireAdmin, (req, res) =
   res.redirect('/homepage'); // Or handle content creation here - for now redirect to homepage
 });
 
+// Config endpoint to expose client settings
+app.get('/api/config', (req, res) => {
+  // Fetch config to get limit
+  res.json({
+    contentFetchLimit: parseInt(process.env.CONTENT_FETCH_LIMIT || '1000', 10)
+  });
+});
+
 // Main homepage route
 app.get('/homepage', requireAuth, requireProfile, (req, res) => {
   res.render('homepage', {
@@ -78,6 +88,22 @@ app.get('/homepage', requireAuth, requireProfile, (req, res) => {
 
 // Clean URL redirects to users routes
 app.get('/profiles', requireAuth, getUserProfiles);
+
+app.get('/movies', requireAuth, requireProfile, (req, res) => {
+  res.render('movies', { 
+    title: 'Netflix Project - Movies',
+    profile: req.profile,
+    user: req.user
+  });
+});
+
+app.get('/series', requireAuth, requireProfile, (req, res) => {
+  res.render('series', { 
+    title: 'Netflix Project - Series',
+    profile: req.profile,
+    user: req.user
+  });
+});
 
 app.get('/logout', (req, res) => {
   res.redirect('/api/users/logout-view');

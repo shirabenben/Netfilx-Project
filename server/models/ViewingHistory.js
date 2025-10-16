@@ -22,4 +22,5 @@ const viewingHistorySchema = new mongoose.Schema({
 
 // Export schema for use in Profile model
 module.exports = viewingHistorySchema;
+module.exports = viewingHistorySchema;
 
