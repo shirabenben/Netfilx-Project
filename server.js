@@ -107,6 +107,13 @@ app.get('/series', requireAuth, requireProfile, (req, res) => {
   });
 });
 
+app.get('/statistics', requireAuth, (req, res) => {
+  res.render('statistics', { 
+    title: 'Netflix Project - Statistics',
+    user: req.user
+  });
+});
+
 app.get('/logout', (req, res) => {
   res.redirect('/api/users/logout-view');
 });

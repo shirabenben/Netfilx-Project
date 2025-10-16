@@ -6,6 +6,9 @@ let genrePopularityChart = null;
 let currentDays = 7;
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Check if migration is needed first
+    checkMigrationStatus();
+    
     loadStatistics(currentDays);
 
     // Date range selector
@@ -428,5 +431,27 @@ function showAlert(type, message) {
         alertDiv.classList.remove('show');
         setTimeout(() => alertDiv.remove(), 150);
     }, 5000);
+}
+
+async function checkMigrationStatus() {
+    try {
+        const response = await fetch('/api/users/check-migration');
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log('Migration Status:', data.data);
+            
+            if (data.needsMigration && data.data.viewingHabits > 0) {
+                showAlert('info', 
+                    `You have ${data.data.viewingHabits} viewing records that can be migrated. ` +
+                    `Click "Migrate Viewing History" to see your statistics.`
+                );
+            } else if (data.data.watchedContent === 0 && data.data.viewingHabits === 0) {
+                console.log('No viewing history found');
+            }
+        }
+    } catch (error) {
+        console.error('Error checking migration status:', error);
+    }
 }
 

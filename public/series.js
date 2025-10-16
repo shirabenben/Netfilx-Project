@@ -71,6 +71,8 @@ async function renderAllSeriesGroupedByGenre() {
                 const response = await fetch(`/api/users/profiles/${profileId}/${endpoint}`);
                 const result = await response.json();
                 
+                console.log(`Series ${filter} API response:`, result);
+                
                 if (!result.success || !Array.isArray(result.data)) {
                     container.innerHTML = `<div class="text-white">No ${filter} series available</div>`;
                     return;
@@ -79,11 +81,13 @@ async function renderAllSeriesGroupedByGenre() {
                 // For watched content, extract the content object and filter only series
                 if (filter === 'watched') {
                     seriesData = result.data
-                        .map(item => item.content)
+                        .map(item => item.contentId)  // Changed from item.content to item.contentId
                         .filter(content => content && content.type === 'series');
+                    console.log(`Filtered watched series:`, seriesData);
                 } else {
                     // For unwatched, data is already content objects
                     seriesData = result.data.filter(item => item.type === 'series');
+                    console.log(`Filtered unwatched series:`, seriesData);
                 }
             } else {
                 // Get all series
@@ -96,6 +100,11 @@ async function renderAllSeriesGroupedByGenre() {
                 seriesData = result.data;
             }
 
+            if (seriesData.length === 0) {
+                container.innerHTML = `<div class="text-white">No ${filter} series found</div>`;
+                return;
+            }
+
             const genreToItems = new Map();
             for (const item of seriesData) {
                 const genres = Array.isArray(item.genre) ? item.genre : [];
@@ -106,6 +115,8 @@ async function renderAllSeriesGroupedByGenre() {
                     genreToItems.get(key).push(item);
                 }
             }
+            
+            console.log(`Genre distribution for ${filter} series:`, Array.from(genreToItems.keys()));
 
             const genres = Array.from(genreToItems.keys()).sort((a, b) => a.localeCompare(b));
             const html = genres.map(genre => {

@@ -69,6 +69,8 @@ async function renderAllMoviesGroupedByGenre() {
                 const response = await fetch(`/api/users/profiles/${profileId}/${endpoint}`);
                 const result = await response.json();
                 
+                console.log(`Movies ${filter} API response:`, result);
+                
                 if (!result.success || !Array.isArray(result.data)) {
                     container.innerHTML = `<div class="text-white">No ${filter} movies available</div>`;
                     return;
@@ -77,11 +79,13 @@ async function renderAllMoviesGroupedByGenre() {
                 // For watched content, extract the content object and filter only movies
                 if (filter === 'watched') {
                     movieData = result.data
-                        .map(item => item.content)
+                        .map(item => item.contentId)  // Changed from item.content to item.contentId
                         .filter(content => content && content.type === 'movie');
+                    console.log(`Filtered watched movies:`, movieData);
                 } else {
                     // For unwatched, data is already content objects
                     movieData = result.data.filter(item => item.type === 'movie');
+                    console.log(`Filtered unwatched movies:`, movieData);
                 }
             } else {
                 // Get all movies
@@ -94,6 +98,11 @@ async function renderAllMoviesGroupedByGenre() {
                 movieData = result.data;
             }
 
+            if (movieData.length === 0) {
+                container.innerHTML = `<div class="text-white">No ${filter} movies found</div>`;
+                return;
+            }
+
             const genreToItems = new Map();
             for (const item of movieData) {
                 const genres = Array.isArray(item.genre) ? item.genre : [];
@@ -104,6 +113,8 @@ async function renderAllMoviesGroupedByGenre() {
                     genreToItems.get(key).push(item);
                 }
             }
+            
+            console.log(`Genre distribution for ${filter} movies:`, Array.from(genreToItems.keys()));
 
             const genres = Array.from(genreToItems.keys()).sort((a, b) => a.localeCompare(b));
             const html = genres.map(genre => {
