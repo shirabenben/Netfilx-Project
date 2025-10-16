@@ -11,7 +11,9 @@ const {
   updateUser,
   deleteUser,
   getUserStatistics,
-  migrateViewingHistory
+  migrateViewingHistory,
+  getWatchedContent,
+  getUnwatchedContent
 } = require('../controllers/userController');
 
 const { requireAuth, requireProfile, login, logout } = require('../middleware/auth');
@@ -30,6 +32,12 @@ router.get('/logout', logout);
 
 // GET /api/users/profiles - Get user profiles as JSON (protected)
 router.get('/profiles', requireAuth, getUserProfiles);
+
+// GET /api/users/profiles/:profileId/watched - Get watched content for a profile (protected)
+router.get('/profiles/:profileId/watched', requireAuth, getWatchedContent);
+
+// GET /api/users/profiles/:profileId/unwatched - Get unwatched content for a profile (protected)
+router.get('/profiles/:profileId/unwatched', requireAuth, getUnwatchedContent);
 
 // GET /api/users/settings - Settings page for managing profiles (protected)
 router.get('/settings', requireAuth, async (req, res) => {

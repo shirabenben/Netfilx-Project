@@ -79,6 +79,22 @@ app.get('/homepage', requireAuth, requireProfile, (req, res) => {
 // Clean URL redirects to users routes
 app.get('/profiles', requireAuth, getUserProfiles);
 
+app.get('/movies', requireAuth, requireProfile, (req, res) => {
+  res.render('movies', { 
+    title: 'Netflix Project - Movies',
+    profile: req.profile,
+    user: req.user
+  });
+});
+
+app.get('/series', requireAuth, requireProfile, (req, res) => {
+  res.render('series', { 
+    title: 'Netflix Project - Series',
+    profile: req.profile,
+    user: req.user
+  });
+});
+
 app.get('/logout', (req, res) => {
   res.redirect('/api/users/logout-view');
 });
