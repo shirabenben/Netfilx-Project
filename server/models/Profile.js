@@ -18,6 +18,20 @@ const profileSchema = new mongoose.Schema({
     type: Map,
     of: Number, // stores the last watched time in seconds
     default: {}
+  },
+
+  // Content IDs that the user liked (for like/unlike)
+  likedContent: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: 'Content',
+    default: []
+  },
+
+  // Optional: series IDs that the user completed
+  completedSeries: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: 'Content',
+    default: []
   }
 
 }, {

@@ -5,14 +5,25 @@ const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const path = require('path');
 
-// Import required middleware and controllers
+// Import middleware & controllers
 const { requireAuth, requireProfile } = require('./server/middleware/auth');
 const { getUserProfiles } = require('./server/controllers/userController');
+const Profile = require('./server/models/Profile');
+const Content = require('./server/models/Content');
+
+// Import routes
+const userRoutes = require('./server/routes/users');
+const contentRoutes = require('./server/routes/content');
+const catalogRoutes = require('./server/routes/catalogs');
+const viewingHabitRoutes = require('./server/routes/viewingHabits');
+const playerRoutes = require('./server/routes/player');
+const watchProgressRoutes = require('./server/routes/watchProgress');
+const profileRoutes = require('./server/routes/profile');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// ---------------------- Middleware ----------------------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -26,78 +37,125 @@ app.use(session({
     touchAfter: 24 * 3600 // lazy session update
   }),
   cookie: {
-    secure: false, // set to true if using https
+    secure: false, // set true if using https
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week
   }
 }));
 
-// Serve static files from public directory
+// Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Set up EJS as template engine
+// EJS template engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)
-.then(() => console.log('MongoDB connected'))
-.catch(err => console.error('MongoDB connection error:', err));
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.error('MongoDB connection error:', err));
 
-// Routes
-const userRoutes = require('./server/routes/users');
-const contentRoutes = require('./server/routes/content');
-const catalogRoutes = require('./server/routes/catalogs');
-const viewingHabitRoutes = require('./server/routes/viewingHabits');
-const playerRoutes = require('./server/routes/player');
-const Content = require('./server/models/Content');
-const watchProgressRoutes = require('./server/routes/watchProgress');
-
-
-
-app.use('/player', playerRoutes);
+// ---------------------- Routes ----------------------
+// API routes
 app.use('/api/users', userRoutes);
 app.use('/api/content', contentRoutes);
+app.use('/content', contentRoutes); // pages
 app.use('/api/catalogs', catalogRoutes);
 app.use('/api/viewing-habits', viewingHabitRoutes);
+app.use('/api/profile', profileRoutes); // Likes, etc.
 app.use('/watch-progress', watchProgressRoutes);
 
+// Player routes
+app.use('/player', playerRoutes);
 
-// Main homepage route
+// ---------------------- Main Pages ----------------------
+
+// Homepage route
 app.get('/homepage', requireAuth, requireProfile, (req, res) => {
-  res.render('homepage', { 
+  res.render('homepage', {
     title: 'Netflix Project',
     profile: req.profile,
     user: req.user
   });
 });
 
-// Clean URL redirects to users routes
+// Profiles listing
 app.get('/profiles', requireAuth, getUserProfiles);
 
+// Logout redirect
 app.get('/logout', (req, res) => {
   res.redirect('/api/users/logout-view');
 });
 
-// Basic route for testing
+// Root route
 app.get('/', (req, res) => {
-  // For unauthenticated users, redirect to login
-  if (!req.session || !req.session.userId) {
-    return res.redirect('/login.html');
-  }
-  // For authenticated users, redirect to profiles
+  if (!req.session || !req.session.userId) return res.redirect('/login.html');
   res.redirect('/profiles');
 });
 
-// Route for video player page
-app.get('/player', (req, res) => {
-  res.render('player'); // מטעין את views/player.ejs
+// ---------------------- Content Page ----------------------
+// Full content screen with all features
+app.get('/content/:id', requireAuth, requireProfile, async (req, res) => {
+  try {
+    const contentId = req.params.id;
+    const profile = req.profile;
+
+    const content = await Content.findById(contentId);
+    if (!content) return res.status(404).send('Content not found');
+
+    // Episodes if series
+    let episodes = [];
+    if (content.type === 'series') {
+      episodes = await Content.find({ seriesId: content._id }).sort({ episodeNumber: 1 });
+    }
+
+    // Similar content (max 5)
+    const similarContents = await Content.find({
+      _id: { $ne: content._id },
+      genre: { $in: content.genre }
+    }).limit(5);
+
+    // Watch progress
+    const watchProgress = profile.watchProgress.get(content._id.toString()) || 0;
+
+    // Last watched episode
+    let lastWatchedEpisode = null;
+    if (content.type === 'series' && episodes.length > 0) {
+      for (const ep of episodes) {
+        const pos = profile.watchProgress.get(ep._id.toString());
+        if (pos) lastWatchedEpisode = ep._id;
+      }
+    }
+
+    // Check if series finished
+    const seriesFinished = content.type === 'series' && episodes.every(ep => profile.watchProgress.get(ep._id.toString()) >= (ep.duration || 0));
+
+    // Liked status placeholder
+    const liked = false; // אם יש מאגר לייקים אפשר לשנות בהתאם
+
+    res.render('content', {
+      content,
+      profileId: profile._id,
+      watchProgress,
+      lastWatchedEpisode,
+      seriesFinished,
+      episodes,
+      similarContents,
+      liked
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
 });
 
-
-// Player route
+// ---------------------- Player Page ----------------------
 app.get('/player/:id', async (req, res) => {
   try {
+    // ⚡ Fetch profile from session if exists to avoid ReferenceError
+    const profile = req.profile || (req.session?.profileId ? await Profile.findById(req.session.profileId) : null);
+
     const episode = await Content.findById(req.params.id);
     if (!episode) return res.status(404).send('Episode not found');
 
@@ -106,14 +164,17 @@ app.get('/player/:id', async (req, res) => {
       episodes = await Content.find({ seriesId: episode.seriesId }).sort({ episodeNumber: 1 });
     }
 
-    res.render('player', { episode, episodes });
+    // ⚡ Get last watch progress for this episode
+    const progress = profile ? profile.watchProgress.get(episode._id.toString()) || 0 : 0;
+
+    res.render('player', { episode, episodes, profile, progress }); // ⚡ Pass progress to EJS
   } catch (err) {
     console.error(err);
     res.status(500).send('Server error');
   }
 });
 
-
+// ---------------------- Start Server ----------------------
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

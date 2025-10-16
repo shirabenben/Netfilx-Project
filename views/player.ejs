@@ -44,7 +44,7 @@
   <h3>Episodes</h3>
   <% if (episodes.length > 0) { %>
     <% episodes.forEach(ep => { %>
-      <div class="episode-item <%= ep._id.equals(episode._id) ? 'current-episode' : '' %>" 
+      <div class="episode-item <%= ep._id.toString() === episode._id.toString() ? 'current-episode' : '' %>" 
            onclick="window.location.href='/player/<%= ep._id %>'">
         <img src="<%= ep.imageUrl || '/placeholder.jpg' %>" alt="Thumb" class="episode-thumb">
         <div class="episode-title">
@@ -59,9 +59,17 @@
 
 <!-- Pass profile and content IDs to JS -->
 <script>
+  // ⚡ Ensure profile always exists to avoid ReferenceError
   window.PROFILE_ID = "<%= profile ? profile._id : '' %>";
   window.CONTENT_ID = "<%= episode._id %>";
   window.EPISODES = <%- JSON.stringify(episodes) %>;
+
+  /**
+   * Notes:
+   * - PROFILE_ID is used to save watch progress and likes
+   * - CONTENT_ID is the current video
+   * - EPISODES contains all episodes for navigation
+   */
 </script>
 
 <script src="/player.js"></script>

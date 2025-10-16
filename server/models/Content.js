@@ -55,7 +55,10 @@ const contentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Content'
   },
-
+  totalEpisodes: { // אופציונלי, מספר פרקים בסדרה
+    type: Number,
+    min: 1
+  },
   director: {
     type: String,
     trim: true,
@@ -66,7 +69,15 @@ const contentSchema = new mongoose.Schema({
     trim: true,
     maxlength: 100
   }],
+  actors: [{ // אופציונלי, עם אפשרות קישור לוויקיפדיה
+    name: { type: String, trim: true, maxlength: 100 },
+    wikiUrl: { type: String, trim: true }
+  }],
   videoUrl: {
+    type: String,
+    trim: true
+  },
+  trailerUrl: { // אופציונלי, טריילר של התוכן
     type: String,
     trim: true
   },
@@ -77,7 +88,11 @@ const contentSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
-  }
+  },
+  similarContentIds: [{ // אופציונלי, תוכן דומה
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Content'
+  }]
 }, {
   timestamps: true
 });

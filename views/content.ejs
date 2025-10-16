@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= content.title %> | Watch</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .episode-item:hover { background-color: #222; cursor: pointer; }
+    .episode-item .badge { font-size: 0.8rem; }
+    .similar-item:hover { opacity: 0.8; }
+    .rating-star { color: gold; margin-left: 4px; }
+
+    .timeline-container {
+      background-color: #666;
+      height: 8px;
+      width: 100%;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 4px;
+      position: relative;
+    }
+
+    .timeline-watched {
+      background-color: #dc3545;
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body class="bg-dark text-light">
+  <div class="container py-4">
+
+    <!-- Content info -->
+    <div class="d-flex align-items-center mb-4">
+      <img src="<%= content.imageUrl %>" alt="<%= content.title %>" 
+           class="rounded me-3 shadow" style="width: 200px; height: auto;">
+      <div>
+        <h1 class="fw-bold"><%= content.title %></h1>
+        <p class="text-secondary"><%= content.description %></p>
+        <p>
+          <strong>Genre:</strong> <%= content.genre.join(', ') %> | 
+          <strong>Year:</strong> <%= content.year %> | 
+          <strong>Rating:</strong> <%= starRatingDisplay %>
+        </p>
+      </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="mb-3">
+      <% if (content.type !== 'series') { %>
+        <% if (watchProgress > 0) { %>
+          <button id="continue-btn" class="btn btn-danger me-2">▶ Continue Watching</button>
+          <button id="restart-btn" class="btn btn-outline-light">↺ Watch from Beginning</button>
+        <% } else { %>
+          <button id="play-btn" class="btn btn-danger me-2">▶ Play</button>
+        <% } %>
+      <% } %>
+    </div>
+
+    <div class="mb-4 d-flex align-items-center gap-2">
+      <button id="like-btn" class="btn btn-outline-success">♡ Like</button>
+
+      <% 
+        let allEpisodesWatched = false;
+        let firstEpisodeId = null;
+        if (content.type === 'series' && episodes && episodes.length > 0) {
+          allEpisodesWatched = episodes.every(ep => {
+            const watchedTime = Number(profile?.watchProgress?.get(ep._id.toString()) || 0);
+            const durationInSeconds = Number(ep.duration) * 60;
+            const progressPercent = Math.min(Math.max((watchedTime / durationInSeconds) * 100, 0), 100);
+            return progressPercent >= 99;
+          });
+
+          const sortedEpisodes = [...episodes].sort((a, b) => a.episodeNumber - b.episodeNumber);
+          firstEpisodeId = sortedEpisodes[0]._id;
+        }
+      %>
+
+      <% if (content.type === 'series' && allEpisodesWatched && episodes.length > 0) { %>
+        <button id="replay-series-btn" class="btn btn-warning"
+          data-first-episode-id="<%= firstEpisodeId %>">
+          🔁 Watch Series Again
+        </button>
+      <% } %>
+    </div>
+
+    <hr>
+
+    <!-- Episodes Timeline -->
+    <% if (content.type === 'series' && episodes && episodes.length > 0) { %>
+      <h4>Episodes</h4>
+      <ul class="list-group mb-4">
+        <% episodes.forEach((ep) => { 
+             const watchedTime = Number(profile?.watchProgress?.get(ep._id.toString()) || 0);
+             const durationInSeconds = Number(ep.duration) * 60;
+             const progressPercent = Math.min(Math.max((watchedTime / durationInSeconds) * 100, 0), 100);
+        %>
+          <li class="list-group-item bg-dark text-light d-flex flex-column mb-2 episode-item">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span><strong>Episode <%= ep.episodeNumber %>:</strong> <%= ep.title %></span>
+              <button class="btn btn-sm btn-outline-light play-episode-btn" data-episode-id="<%= ep._id %>">▶ Watch</button>
+            </div>
+            <div class="timeline-container">
+              <div class="timeline-watched" style="width:<%= progressPercent %>%"></div>
+            </div>
+            <small class="text-secondary mt-1">
+              <%= (watchedTime / 60).toFixed(2) %>m / <%= ep.duration %>m → <%= Math.round(progressPercent) %>% watched
+            </small>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+
+    <!-- Cast -->
+    <% if (content.actors && content.actors.length > 0) { %>
+      <h4>Cast</h4>
+      <ul class="list-inline">
+        <% content.actors.forEach(actor => { %>
+          <li class="list-inline-item me-3">
+            <% if (actor.wikiUrl) { %>
+              <a href="<%= actor.wikiUrl %>" target="_blank" class="text-decoration-none text-info">🎬 <%= actor.name %></a>
+            <% } else { %>
+              <span class="text-info">🎬 <%= actor.name %></span>
+            <% } %>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+
+    <!-- Similar content -->
+    <h4>Similar Titles</h4>
+    <div class="row mb-4">
+      <% similarContents.forEach(item => { %>
+        <div class="col-md-2 col-6 mb-3">
+          <a href="/content/view/<%= item._id %>" class="text-decoration-none text-light similar-item">
+            <img src="<%= item.imageUrl %>" class="img-fluid rounded mb-2" alt="<%= item.title %>">
+            <p class="text-center small"><%= item.title %></p>
+          </a>
+        </div>
+      <% }) %>
+    </div>
+
+  </div>
+
+<script>
+  const profileId = "<%= profileId %>";
+  const contentId = "<%= content._id %>";
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const likeBtn = document.getElementById('like-btn');
+
+    // Fetch initial like status
+    try {
+      const res = await fetch(`/watch-progress/${profileId}/${contentId}`);
+      const data = await res.json();
+      if (data.liked) {
+        likeBtn.classList.add('btn-success');
+        likeBtn.classList.remove('btn-outline-success');
+        likeBtn.textContent = '♥ Liked';
+      } else {
+        likeBtn.classList.add('btn-outline-success');
+        likeBtn.classList.remove('btn-success');
+        likeBtn.textContent = '♡ Like';
+      }
+    } catch (err) {
+      console.error('Error fetching like status:', err);
+    }
+
+    // Like / Unlike toggle
+    likeBtn.addEventListener('click', async () => {
+      try {
+        const res = await fetch('/watch-progress/like', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profileId, contentId })
+        });
+        const result = await res.json();
+        if (result.liked) {
+          likeBtn.classList.add('btn-success');
+          likeBtn.classList.remove('btn-outline-success');
+          likeBtn.textContent = '♥ Liked';
+        } else {
+          likeBtn.classList.add('btn-outline-success');
+          likeBtn.classList.remove('btn-success');
+          likeBtn.textContent = '♡ Like';
+        }
+      } catch (err) {
+        console.error('Error toggling like:', err);
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

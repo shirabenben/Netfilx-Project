@@ -4,7 +4,6 @@ const ViewingHabit = require('../models/ViewingHabit');
 // Get all content with optional filtering
 const getAllContent = async (req, res) => {
   try {
-    // 1. Destructure query parameters
     const {
       page = 1,
       limit = 10,
@@ -15,41 +14,28 @@ const getAllContent = async (req, res) => {
       sort = '-createdAt'
     } = req.query;
 
-    // 2. Build the query object
     const query = { isActive: true };
-    if (genre) {
-      query.genre = { $in: genre.split(',') };
-    }
-    if (type) {
-      query.type = type;
-    }
-    if (year) {
-      query.year = year;
-    }
-    if (search) {
-      query.$text = { $search: search };
-    }
+    if (genre) query.genre = { $in: genre.split(',') };
+    if (type) query.type = type;
+    if (year) query.year = year;
+    if (search) query.$text = { $search: search };
 
-    // 3. Parse page and limit
     const pageNum = parseInt(page, 10);
     const limitNum = parseInt(limit, 10);
     const skip = (pageNum - 1) * limitNum;
 
-    // 4. Execute queries in parallel for efficiency
     const [results, totalDocs] = await Promise.all([
-        Content.find(query)
-            .sort(sort)
-            .skip(skip)
-            .limit(limitNum)
-            .select('-__v')
-            .lean(),
-        Content.countDocuments(query)
+      Content.find(query)
+        .sort(sort)
+        .skip(skip)
+        .limit(limitNum)
+        .select('-__v')
+        .lean(),
+      Content.countDocuments(query)
     ]);
 
-    // 5. Calculate total pages
     const totalPages = Math.ceil(totalDocs / limitNum);
 
-    // 6. Send the response
     res.json({
       success: true,
       data: results,
@@ -69,28 +55,43 @@ const getAllContent = async (req, res) => {
   }
 };
 
-// Get single content by ID
+// Get single content by ID (for EJS rendering)
 const getContentById = async (req, res) => {
   try {
-    const content = await Content.findById(req.params.id);
+    // שולף את כל השדות כולל actors ו-starRating
+    const content = await Content.findById(req.params.id).lean();
 
     if (!content) {
-      return res.status(404).json({
-        success: false,
-        message: 'Content not found'
-      });
+      return res.status(404).send('Content not found');
     }
 
-    res.json({
-      success: true,
-      data: content
+    // שולף פרקים אם מדובר בסדרה
+    const episodes = content.type === 'series'
+      ? await Content.find({ seriesId: content._id }).sort('episodeNumber').lean()
+      : [];
+
+    // שולף תוכן דומה (אותו סוג ז'אנר, לא כולל את אותו תוכן)
+    const similarContents = await Content.find({
+      genre: { $in: content.genre },
+      _id: { $ne: content._id },
+      isActive: true
+    }).limit(6).lean();
+
+    // שולח את הנתונים ל-EJS
+    res.render('content', {
+      content,
+      profileId: req.session?.profileId || null,
+      episodes,
+      similarContents,
+      watchProgress: 0,
+      liked: false,
+      lastWatchedEpisode: null,
+      seriesFinished: false
     });
+
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching content',
-      error: error.message
-    });
+    console.error(error);
+    res.status(500).send('Error fetching content');
   }
 };
 
@@ -160,7 +161,7 @@ const updateContent = async (req, res) => {
   }
 };
 
-// Delete content (soft delete by setting isActive to false)
+// Delete content (soft delete)
 const deleteContent = async (req, res) => {
   try {
     const content = await Content.findByIdAndUpdate(
@@ -212,7 +213,7 @@ const getContentByGenre = async (req, res) => {
   }
 };
 
-// Get trending content (recently added)
+// Get trending content
 const getTrendingContent = async (req, res) => {
   try {
     const content = await Content.find({ isActive: true })
@@ -233,10 +234,9 @@ const getTrendingContent = async (req, res) => {
   }
 };
 
-// Get top 5 most popular content (using GroupBy for viewing habits)
+// Get top 5 most popular content
 const getMostPopularContent = async (req, res) => {
   try {
-    // Aggregate viewing habits to find most watched content
     const popularContent = await ViewingHabit.aggregate([
       {
         $group: {
@@ -245,12 +245,8 @@ const getMostPopularContent = async (req, res) => {
           avgProgress: { $avg: '$watchProgress' }
         }
       },
-      {
-        $sort: { viewCount: -1, avgProgress: -1 }
-      },
-      {
-        $limit: 5
-      },
+      { $sort: { viewCount: -1, avgProgress: -1 } },
+      { $limit: 5 },
       {
         $lookup: {
           from: 'contents',
@@ -259,14 +255,8 @@ const getMostPopularContent = async (req, res) => {
           as: 'contentDetails'
         }
       },
-      {
-        $unwind: '$contentDetails'
-      },
-      {
-        $match: {
-          'contentDetails.isActive': true
-        }
-      },
+      { $unwind: '$contentDetails' },
+      { $match: { 'contentDetails.isActive': true } },
       {
         $project: {
           _id: '$contentDetails._id',
@@ -302,9 +292,9 @@ const getNewestMovies = async (req, res) => {
       type: 'movie',
       isActive: true
     })
-    .sort({ createdAt: -1 })
-    .limit(5)
-    .select('title description genre year type imageUrl createdAt');
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('title description genre year type imageUrl createdAt');
 
     res.json({
       success: true,
@@ -327,9 +317,9 @@ const getNewestSeries = async (req, res) => {
       type: 'series',
       isActive: true
     })
-    .sort({ createdAt: -1 })
-    .limit(5)
-    .select('title description genre year type imageUrl createdAt');
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('title description genre year type imageUrl createdAt');
 
     res.json({
       success: true,
