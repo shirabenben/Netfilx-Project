@@ -105,6 +105,7 @@ router.get('/check-migration', requireAuth, async (req, res) => {
   try {
     const User = require('../models/User');
     const ViewingHabit = require('../models/ViewingHabit');
+    const Profile = require('../models/Profile');
     
     const user = await User.findById(req.user._id).populate('profiles');
     if (!user) {
@@ -113,11 +114,24 @@ router.get('/check-migration', requireAuth, async (req, res) => {
     
     let totalViewingHabits = 0;
     let totalWatchedContent = 0;
+    const profileDetails = [];
     
     for (const profile of user.profiles) {
       const habits = await ViewingHabit.find({ profile: profile._id });
+      
+      // Get the actual profile with watched content
+      const fullProfile = await Profile.findById(profile._id);
+      const watchedCount = fullProfile?.watchedContent?.length || 0;
+      
       totalViewingHabits += habits.length;
-      totalWatchedContent += profile.watchedContent.length;
+      totalWatchedContent += watchedCount;
+      
+      profileDetails.push({
+        name: profile.name,
+        viewingHabits: habits.length,
+        watchedContent: watchedCount,
+        sampleDates: fullProfile?.watchedContent?.slice(0, 3).map(w => w.watchedAt) || []
+      });
     }
     
     res.json({
@@ -126,7 +140,8 @@ router.get('/check-migration', requireAuth, async (req, res) => {
       data: {
         profiles: user.profiles.length,
         viewingHabits: totalViewingHabits,
-        watchedContent: totalWatchedContent
+        watchedContent: totalWatchedContent,
+        profileDetails: profileDetails
       }
     });
   } catch (error) {

@@ -507,6 +507,12 @@ const getUserStatistics = async (req, res) => {
       if (profile.watchedContent && profile.watchedContent.length > 0) {
         totalWatchedContent += profile.watchedContent.length;
         profile.watchedContent.forEach(watch => {
+          // Check if content is populated
+          if (!watch.contentId) {
+            console.warn('Warning: watchedContent item missing contentId', watch);
+            return;
+          }
+          
           if (watch.watchedAt >= startDate && watch.watchedAt <= endDate) {
             allViewingHistory.push({
               profile: profile,
@@ -524,7 +530,31 @@ const getUserStatistics = async (req, res) => {
       - Total watched content entries: ${totalWatchedContent}
       - Viewing history in date range: ${allViewingHistory.length}
       - Date range: ${startDate.toISOString()} to ${endDate.toISOString()}
-    `);
+      - Sample content item:`, allViewingHistory[0]?.content ? {
+        id: allViewingHistory[0].content._id,
+        title: allViewingHistory[0].content.title,
+        type: allViewingHistory[0].content.type,
+        genre: allViewingHistory[0].content.genre
+      } : 'No items');
+
+    // If no viewing history in date range but we have watched content, show warning
+    if (allViewingHistory.length === 0 && totalWatchedContent > 0) {
+      console.warn(`Warning: ${totalWatchedContent} watched items exist but none in the ${days}-day range`);
+      console.log('Date range check:', {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      });
+      
+      // Check dates of watched content
+      user.profiles.forEach(profile => {
+        console.log(`Profile: ${profile.name}`);
+        profile.watchedContent.forEach((watch, idx) => {
+          const watchDate = watch.watchedAt;
+          const inRange = watchDate >= startDate && watchDate <= endDate;
+          console.log(`  Item ${idx + 1}: watchedAt=${watchDate instanceof Date ? watchDate.toISOString() : watchDate}, inRange=${inRange}`);
+        });
+      });
+    }
 
     // Get viewing habits for liked content count
     const profileIds = user.profiles.map(p => p._id);
@@ -705,9 +735,17 @@ const migrateViewingHistory = async (req, res) => {
       // Add each viewing habit to watchedContent
       viewingHabits.forEach(vh => {
         if (vh.content && vh.content._id) {
+          // Use the original date, but ensure it's a Date object
+          let watchedDate = vh.lastWatched || vh.updatedAt || new Date();
+          
+          // If the date is a string, convert to Date
+          if (typeof watchedDate === 'string') {
+            watchedDate = new Date(watchedDate);
+          }
+          
           profile.watchedContent.push({
             contentId: vh.content._id,
-            watchedAt: vh.lastWatched || vh.updatedAt,
+            watchedAt: watchedDate,
             duration: vh.watchProgress || 0
           });
           totalMigrated++;
