@@ -97,8 +97,20 @@ function debounce(func, wait) {
     };
 }
 
+// Store profile ID from URL parameter
+function storeProfileId() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const profileId = urlParams.get('profile');
+    
+    if (profileId) {
+        localStorage.setItem('currentProfileId', profileId);
+        console.log('Profile ID stored:', profileId);
+    }
+}
+
 // Initialize homepage
 function initializeHomepage() {
+    storeProfileId();
     if (document.getElementById('popular-content')) {
         loadContent('popular', 'popular-content', 'popular-slider', 'popular-left-btn', 'popular-right-btn', true);
     }

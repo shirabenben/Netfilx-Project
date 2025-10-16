@@ -294,6 +294,75 @@ const createProfile = async (req, res) => {
   }
 };
 
+// Get watched content for a profile
+const getWatchedContent = async (req, res) => {
+  try {
+    const { profileId } = req.params;
+
+    const profile = await Profile.findById(profileId).populate('watchedContent.contentId');
+    if (!profile) {
+      return res.status(404).json({ success: false, message: 'Profile not found' });
+    }
+
+    res.json({ 
+      success: true, 
+      count: profile.watchedContent.length, 
+      data: profile.watchedContent 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error fetching watched content', 
+      error: error.message 
+    });
+  }
+};
+
+// Get unwatched content for a profile
+const getUnwatchedContent = async (req, res) => {
+  try {
+    const { profileId } = req.params;
+
+    const profile = await Profile.findById(profileId).populate('watchedContent.contentId');
+    if (!profile) {
+      return res.status(404).json({ success: false, message: 'Profile not found' });
+    }
+
+    // Get all active content
+    const Content = require('../models/Content');
+    const allContent = await Content.find({ isActive: true });
+
+    // Get IDs of watched content
+    const watchedIds = profile.watchedContent.map(item => {
+      // Handle both populated (object) and non-populated (ObjectId) cases
+      if (item.contentId && item.contentId._id) {
+        return item.contentId._id.toString();
+      }
+      return item.contentId.toString();
+    });
+
+    console.log(`Unwatched content check for profile ${profileId}: ${watchedIds.length} watched items`);
+
+    // Filter out watched content to get unwatched content
+    const unwatchedContent = allContent.filter(
+      item => !watchedIds.includes(item._id.toString())
+    );
+
+    res.json({ 
+      success: true, 
+      count: unwatchedContent.length, 
+      data: unwatchedContent 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error fetching unwatched content', 
+      error: error.message 
+    });
+  }
+};
+
+
 // Update profile
 const updateProfile = async (req, res) => {
   try {
@@ -433,9 +502,17 @@ const getUserStatistics = async (req, res) => {
 
     // Get all viewing history from all profiles within date range
     const allViewingHistory = [];
+    let totalWatchedContent = 0;
     user.profiles.forEach(profile => {
       if (profile.watchedContent && profile.watchedContent.length > 0) {
+        totalWatchedContent += profile.watchedContent.length;
         profile.watchedContent.forEach(watch => {
+          // Check if content is populated
+          if (!watch.contentId) {
+            console.warn('Warning: watchedContent item missing contentId', watch);
+            return;
+          }
+          
           if (watch.watchedAt >= startDate && watch.watchedAt <= endDate) {
             allViewingHistory.push({
               profile: profile,
@@ -447,6 +524,37 @@ const getUserStatistics = async (req, res) => {
         });
       }
     });
+    
+    console.log(`Statistics Debug:
+      - Total profiles: ${user.profiles.length}
+      - Total watched content entries: ${totalWatchedContent}
+      - Viewing history in date range: ${allViewingHistory.length}
+      - Date range: ${startDate.toISOString()} to ${endDate.toISOString()}
+      - Sample content item:`, allViewingHistory[0]?.content ? {
+        id: allViewingHistory[0].content._id,
+        title: allViewingHistory[0].content.title,
+        type: allViewingHistory[0].content.type,
+        genre: allViewingHistory[0].content.genre
+      } : 'No items');
+
+    // If no viewing history in date range but we have watched content, show warning
+    if (allViewingHistory.length === 0 && totalWatchedContent > 0) {
+      console.warn(`Warning: ${totalWatchedContent} watched items exist but none in the ${days}-day range`);
+      console.log('Date range check:', {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      });
+      
+      // Check dates of watched content
+      user.profiles.forEach(profile => {
+        console.log(`Profile: ${profile.name}`);
+        profile.watchedContent.forEach((watch, idx) => {
+          const watchDate = watch.watchedAt;
+          const inRange = watchDate >= startDate && watchDate <= endDate;
+          console.log(`  Item ${idx + 1}: watchedAt=${watchDate instanceof Date ? watchDate.toISOString() : watchDate}, inRange=${inRange}`);
+        });
+      });
+    }
 
     // Get viewing habits for liked content count
     const profileIds = user.profiles.map(p => p._id);
@@ -528,6 +636,8 @@ const getUserStatistics = async (req, res) => {
       }
     });
 
+    console.log(`Genre Debug: Content with views: ${contentViewCounts.size}`);
+
     // Get all content items with their genres
     const allContent = await Content.find({ isActive: true });
     
@@ -555,6 +665,8 @@ const getUserStatistics = async (req, res) => {
         });
       }
     });
+
+    console.log(`Genre Debug: Genres found: ${contentByGenre.size}, Genre names: ${Array.from(contentByGenre.keys()).join(', ')}`);
 
     // Convert to array format and sort
     stats.contentByGenre = Array.from(contentByGenre.entries())
@@ -608,32 +720,53 @@ const migrateViewingHistory = async (req, res) => {
     }
 
     let totalMigrated = 0;
+    const migrationDetails = [];
     
     // For each profile, get viewing habits and add to watchedContent
     for (const profile of user.profiles) {
       // Get all viewing habits for this profile
       const viewingHabits = await ViewingHabit.find({ profile: profile._id }).populate('content');
       
+      console.log(`Profile ${profile.name}: Found ${viewingHabits.length} viewing habits`);
+      
       // Clear existing watchedContent to avoid duplicates
       profile.watchedContent = [];
       
       // Add each viewing habit to watchedContent
       viewingHabits.forEach(vh => {
-        profile.watchedContent.push({
-          contentId: vh.content._id,
-          watchedAt: vh.lastWatched || vh.updatedAt,
-          duration: vh.watchProgress || 0
-        });
-        totalMigrated++;
+        if (vh.content && vh.content._id) {
+          // Use the original date, but ensure it's a Date object
+          let watchedDate = vh.lastWatched || vh.updatedAt || new Date();
+          
+          // If the date is a string, convert to Date
+          if (typeof watchedDate === 'string') {
+            watchedDate = new Date(watchedDate);
+          }
+          
+          profile.watchedContent.push({
+            contentId: vh.content._id,
+            watchedAt: watchedDate,
+            duration: vh.watchProgress || 0
+          });
+          totalMigrated++;
+        }
       });
       
       await profile.save();
+      
+      migrationDetails.push({
+        profileName: profile.name,
+        migratedCount: viewingHabits.length
+      });
     }
+
+    console.log(`Migration complete: ${totalMigrated} total records migrated across ${user.profiles.length} profiles`);
 
     res.json({
       success: true,
       message: `Successfully migrated ${totalMigrated} viewing records`,
-      profilesUpdated: user.profiles.length
+      profilesUpdated: user.profiles.length,
+      details: migrationDetails
     });
 
   } catch (error) {
@@ -656,6 +789,8 @@ module.exports = {
   deleteProfile,
   updateUser,
   deleteUser,
+  getWatchedContent,
+  getUnwatchedContent,
   getUserStatistics,
   migrateViewingHistory
 };

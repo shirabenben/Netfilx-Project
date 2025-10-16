@@ -10,11 +10,14 @@ const {
   getTrendingContent,
   getMostPopularContent,
   getNewestMovies,
-  getNewestSeries
+  getNewestSeries,
+  markContentAsWatched
 } = require('../controllers/contentController');
 
+const { requireAuth, requireProfile } = require('../middleware/auth');
+
 // GET /api/content - Get all content with optional filtering
-router.get('/', getAllContent);
+router.get('/', requireAuth, requireProfile, getAllContent);
 
 // GET /api/content/popular - Get most popular content
 router.get('/popular', getMostPopularContent);
@@ -42,5 +45,8 @@ router.put('/:id', updateContent);
 
 // DELETE /api/content/:id - Delete content (soft delete)
 router.delete('/:id', deleteContent);
+
+// PUT /api/content/mark-watched - Mark content as watched or unwatched for a profile
+router.put('/mark-watched', markContentAsWatched);
 
 module.exports = router;
