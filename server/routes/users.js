@@ -10,8 +10,6 @@ const {
   deleteProfile,
   updateUser,
   deleteUser,
-  getWatchedContent,
-  getUnwatchedContent
   getUserStatistics,
   migrateViewingHistory
 } = require('../controllers/userController');
@@ -97,11 +95,6 @@ router.post('/migrate-viewing-history', requireAuth, migrateViewingHistory);
 // POST /api/users/profiles - Create new profile (protected)
 router.post('/profiles', requireAuth, createProfile);
 
-// GET /api/users/profiles/:profileId/watched - Get watched content for a profile (protected)
-router.get('/profiles/:profileId/watched', requireAuth, getWatchedContent);
-
-// GET /api/users/profiles/:profileId/unwatched - Get unwatched content for a profile (protected)
-router.get('/profiles/:profileId/unwatched', requireAuth, getUnwatchedContent);
 // PUT /api/users/profiles/:id - Update profile (protected)
 router.put('/profiles/:id', requireAuth, updateProfile);
 

@@ -294,70 +294,6 @@ const createProfile = async (req, res) => {
   }
 };
 
-// Get watched content for a profile
-const getWatchedContent = async (req, res) => {
-  try {
-    const { profileId } = req.params;
-
-    const profile = await Profile.findById(profileId).populate('watchedContent.contentId');
-    if (!profile) {
-      return res.status(404).json({ success: false, message: 'Profile not found' });
-    }
-
-    // Transform the data to include both content details and viewing history metadata
-    const watchedContentWithDetails = profile.watchedContent.map(item => ({
-      content: item.contentId,
-      watchedAt: item.watchedAt,
-      duration: item.duration,
-      _id: item._id
-    }));
-
-    res.json({ 
-      success: true, 
-      count: watchedContentWithDetails.length, 
-      data: watchedContentWithDetails 
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error fetching watched content', 
-      error: error.message 
-    });
-  }
-};
-
-// Get unwatched content for a profile
-const getUnwatchedContent = async (req, res) => {
-  try {
-    const { profileId } = req.params;
-
-    const profile = await Profile.findById(profileId);
-    if (!profile) {
-      return res.status(404).json({ success: false, message: 'Profile not found' });
-    }
-
-    // Get all active content
-    const Content = require('../models/Content');
-    const allContent = await Content.find({ isActive: true });
-
-    // Get IDs of watched content (from the contentId field in viewing history)
-    const watchedIds = profile.watchedContent.map(item => item.contentId.toString());
-
-    // Filter out watched content to get unwatched content
-    const unwatchedContent = allContent.filter(
-      item => !watchedIds.includes(item._id.toString())
-    );
-
-    res.json({ 
-      success: true, 
-      count: unwatchedContent.length, 
-      data: unwatchedContent 
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error fetching unwatched content', 
-      error: error.message 
 // Update profile
 const updateProfile = async (req, res) => {
   try {
@@ -720,8 +656,6 @@ module.exports = {
   deleteProfile,
   updateUser,
   deleteUser,
-  getWatchedContent,
-  getUnwatchedContent
   getUserStatistics,
   migrateViewingHistory
 };

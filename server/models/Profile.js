@@ -13,7 +13,6 @@ const profileSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  watchedContent: [viewingHistorySchema]
   watchedContent: {
     type: [viewingHistorySchema],
     default: []
@@ -22,6 +21,13 @@ const profileSchema = new mongoose.Schema({
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
+});
+
+// Virtual populate for viewing habits
+profileSchema.virtual('viewingHabits', {
+  ref: 'ViewingHabit',
+  localField: '_id',
+  foreignField: 'profile'
 });
 
 // Virtual populate for catalogs
