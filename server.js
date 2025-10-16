@@ -56,7 +56,19 @@ app.use('/api/content', contentRoutes);
 app.use('/api/catalogs', catalogRoutes);
 app.use('/api/viewing-habits', viewingHabitRoutes);
 app.use('/api/rating-lookup', ratingLookupRoutes);
-
+// Config endpoint to expose client settings
+app.get('/api/config', (req, res) => {
+  // Fetch config to get limit
+  res.json({
+    contentFetchLimit: parseInt(process.env.CONTENT_FETCH_LIMIT || '1000', 10)
+  });
+});// Config endpoint to expose client settings
+app.get('/api/config', (req, res) => {
+  // Fetch config to get limit
+  res.json({
+    contentFetchLimit: parseInt(process.env.CONTENT_FETCH_LIMIT || '1000', 10)
+  });
+});
 // Add content form route
 app.get('/add-content', requireAuth, requireProfile, requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'add-content.html'));
