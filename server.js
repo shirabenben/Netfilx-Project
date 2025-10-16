@@ -56,10 +56,6 @@ mongoose.connect(process.env.MONGODB_URI)
 .catch(err => console.error('MongoDB connection error:', err));
 
 // Routes
-const userRoutes = require('./server/routes/users');
-const contentRoutes = require('./server/routes/content');
-const catalogRoutes = require('./server/routes/catalogs');
-const viewingHabitRoutes = require('./server/routes/viewingHabits');
 const ratingLookupRoutes = require('./server/routes/ratingLookup');
 
 // ---------------------- Routes ----------------------
