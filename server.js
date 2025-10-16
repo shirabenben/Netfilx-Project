@@ -5,8 +5,8 @@ const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const path = require('path');
 
-// Import middleware & controllers
-const { requireAuth, requireProfile } = require('./server/middleware/auth');
+// Import required middleware and controllers
+const { requireAuth, requireProfile, requireAdmin } = require('./server/middleware/auth');
 const { getUserProfiles } = require('./server/controllers/userController');
 const Profile = require('./server/models/Profile');
 const Content = require('./server/models/Content');
@@ -52,8 +52,15 @@ app.set('views', path.join(__dirname, 'views'));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+.then(() => console.log('MongoDB connected'))
+.catch(err => console.error('MongoDB connection error:', err));
+
+// Routes
+const userRoutes = require('./server/routes/users');
+const contentRoutes = require('./server/routes/content');
+const catalogRoutes = require('./server/routes/catalogs');
+const viewingHabitRoutes = require('./server/routes/viewingHabits');
+const ratingLookupRoutes = require('./server/routes/ratingLookup');
 
 // ---------------------- Routes ----------------------
 // API routes
@@ -64,6 +71,17 @@ app.use('/api/catalogs', catalogRoutes);
 app.use('/api/viewing-habits', viewingHabitRoutes);
 app.use('/api/profile', profileRoutes); // Likes, etc.
 app.use('/watch-progress', watchProgressRoutes);
+app.use('/api/rating-lookup', ratingLookupRoutes);
+
+// Add content form route
+app.get('/add-content', requireAuth, requireProfile, requireAdmin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'add-content.html'));
+});
+
+// API route to create content (admin only)
+app.post('/add-content', requireAuth, requireProfile, requireAdmin, (req, res) => {
+  res.redirect('/homepage'); // Or handle content creation here - for now redirect to homepage
+});
 
 // Player routes
 app.use('/player', playerRoutes);

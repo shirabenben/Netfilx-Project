@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const viewingHistorySchema = require('./ViewingHistory');
 
 const profileSchema = new mongoose.Schema({
   name: {
@@ -31,6 +32,10 @@ const profileSchema = new mongoose.Schema({
   completedSeries: {
     type: [mongoose.Schema.Types.ObjectId],
     ref: 'Content',
+        default: []
+  },
+  watchedContent: {
+    type: [viewingHistorySchema],
     default: []
   }
 
