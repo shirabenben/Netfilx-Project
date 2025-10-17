@@ -14,7 +14,9 @@ function createContentCard(content, showViewCount = false) {
 
     return `
         <div class="content-item">
-            <div class="content-card position-relative">
+            <div class="content-card position-relative" 
+                 onclick="navigateToContent('${content._id}')" 
+                 style="cursor: pointer;">
                 ${viewCountBadge}
                 ${starRatingDisplay}
                 <img src="${imageUrl}" class="content-poster" alt="${content.title}">
@@ -28,6 +30,19 @@ function createContentCard(content, showViewCount = false) {
             </div>
         </div>
     `;
+}
+
+// Navigate to content detail page
+function navigateToContent(contentId) {
+    const profileId = localStorage.getItem('currentProfileId') || 
+                     new URLSearchParams(window.location.search).get('profile');
+    
+    let url = `/content/view/${contentId}`;
+    if (profileId) {
+        url += `?profileId=${profileId}`;
+    }
+    
+    window.location.href = url;
 }
 
 class ContentSlider {
