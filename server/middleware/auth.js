@@ -2,6 +2,7 @@
 
 const User = require('../models/User');
 const Profile = require('../models/Profile');
+const logger = require('./logger');
 
 // Middleware to check if user is authenticated
 const requireAuth = async (req, res, next) => {
@@ -25,7 +26,7 @@ const requireAuth = async (req, res, next) => {
         req.user = user;
         next();
     } catch (error) {
-        console.error('Authentication error:', error);
+        logger.error('Authentication error occurred', { userId: req.session?.userId }, error);
         return res.redirect('/login.html');
     }
 };
