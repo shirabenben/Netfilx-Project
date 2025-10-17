@@ -38,63 +38,6 @@ router.put('/:id', updateContent);
 // DELETE /api/content/:id - Delete content (soft delete)
 router.delete('/:id', deleteContent);
 
-// ---------------- Player route (/player/:id) ----------------
-router.get('/player/:id', async (req, res) => {
-  try {
-    const contentId = req.params.id;
-    const profile = req.session?.profileId
-      ? await Profile.findById(req.session.profileId).lean()
-      : null;
-
-    if (profile?.watchProgress && !(profile.watchProgress instanceof Map)) {
-      profile.watchProgress = new Map(Object.entries(profile.watchProgress.toObject?.() || profile.watchProgress));
-    }
-
-    const content = await Content.findById(contentId).lean();
-    if (!content) return res.status(404).send('Content not found');
-
-    const starRatingDisplay =
-      content.starRating != null ? `${content.starRating} ⭐` : 'N/A ⭐';
-
-    let episodes = [];
-    if (content.type === 'series') {
-      episodes = await Content.find({ seriesId: content._id })
-        .sort({ episodeNumber: 1 })
-        .lean();
-    }
-
-    let lastWatchedEpisode = null;
-    if (profile && content.type === 'series' && episodes.length) {
-      for (let ep of episodes.reverse()) {
-        if (profile.watchProgress?.get(ep._id.toString()) > 0) {
-          lastWatchedEpisode = ep._id.toString();
-          break;
-        }
-      }
-    }
-
-    const similar = await Content.find({
-      _id: { $ne: content._id },
-      genre: { $in: content.genre },
-      type: { $in: ['movie', 'series'] }
-    }).limit(5).lean();
-
-    res.render('player', {
-      content,
-      episode: content,
-      episodes,
-      profile,             
-      profileId: profile?._id,
-      similar,
-      lastWatchedEpisode,
-      starRatingDisplay,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
-  }
-});
-
 // ---------------- Content Page route (/content/view/:id) ----------------
 router.get('/view/:id', getContentById);
 
