@@ -11,6 +11,18 @@
         
         <!-- Main Navigation Menu -->
         <div class="navbar-collapse collapse" id="navMenu">
+            <!-- Centered Search Bar -->
+            <form class="d-flex mx-auto" role="search" action="/content/search" method="GET">
+                <div class="input-group">
+                    <input type="text" class="form-control" name="q" placeholder="Search movies and series..." 
+                           value="<%= typeof searchQuery !== 'undefined' ? searchQuery : '' %>" style="min-width: 250px;">
+                    <button class="btn btn-outline-danger" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+            
+            <!-- All Navigation Items on Right -->
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item">
                     <a class="nav-link text-white fw-normal px-3 rounded" href="/movies">Movies</a>
