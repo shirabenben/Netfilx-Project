@@ -7,9 +7,16 @@ function createContentCard(content, showViewCount = false) {
     const viewCountBadge = showViewCount && content.viewCount ? 
         `<span class="badge bg-danger position-absolute top-0 end-0 m-2">${content.viewCount} views</span>` : '';
     
+    // Get current profile ID from localStorage or URL
+    const profileId = localStorage.getItem('currentProfileId') || 
+                     new URLSearchParams(window.location.search).get('profile') || '';
+    const profileParam = profileId ? `?profileId=${profileId}` : '';
+    
     return `
         <div class="content-item">
-            <div class="content-card position-relative">
+            <div class="content-card position-relative" 
+                 onclick="navigateToContent('${content._id}')" 
+                 style="cursor: pointer;">
                 ${viewCountBadge}
                 <img src="${imageUrl}" class="content-poster" alt="${content.title}">
                 <div class="content-overlay">
@@ -106,6 +113,19 @@ function storeProfileId() {
         localStorage.setItem('currentProfileId', profileId);
         console.log('Profile ID stored:', profileId);
     }
+}
+
+// Navigate to content detail page
+function navigateToContent(contentId) {
+    const profileId = localStorage.getItem('currentProfileId') || 
+                     new URLSearchParams(window.location.search).get('profile');
+    
+    let url = `/content/view/${contentId}`;
+    if (profileId) {
+        url += `?profileId=${profileId}`;
+    }
+    
+    window.location.href = url;
 }
 
 // Initialize homepage
