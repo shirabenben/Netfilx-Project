@@ -477,4 +477,5 @@ module.exports = {
   getNewestMovies,
   getNewestSeries,
   markContentAsWatched,
+  
 };
