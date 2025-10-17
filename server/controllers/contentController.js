@@ -108,40 +108,75 @@ const getAllContent = async (req, res) => {
 // Get single content by ID (for EJS rendering)
 const getContentById = async (req, res) => {
   try {
-    // שולף את כל השדות כולל actors ו-starRating
-    const content = await Content.findById(req.params.id).lean();
+    const contentId = req.params.id;
+    const profileId = req.session?.profileId || req.query.profileId;
+    const profile = profileId ? await Profile.findById(profileId).lean() : null;
 
-    if (!content) {
-      return res.status(404).send('Content not found');
+    // ⚡ המרת watchProgress ל־Map לפני כל שימוש
+    if (profile?.watchProgress) {
+      if (!(profile.watchProgress instanceof Map)) {
+        profile.watchProgress = new Map(Object.entries(profile.watchProgress.toObject?.() || profile.watchProgress));
+      }
     }
 
-    // שולף פרקים אם מדובר בסדרה
-    const episodes = content.type === 'series'
-      ? await Content.find({ seriesId: content._id }).sort('episodeNumber').lean()
-      : [];
+    const content = await Content.findById(contentId).lean();
+    if (!content) return res.status(404).send('Content not found');
 
-    // שולף תוכן דומה (אותו סוג ז'אנר, לא כולל את אותו תוכן)
+    if (!['movie', 'series'].includes(content.type)) {
+      return res.status(400).send('Invalid content type');
+    }
+
+    const starRatingDisplay =
+      content.starRating != null ? `${content.starRating} ⭐` : 'N/A ⭐';
+
+    const liked = profile?.likedContents?.some(id => id.toString() === contentId) || false;
+    const watchProgress = profile?.watchProgress?.get(contentId) || 0;
+
+    let episodes = [];
+    if (content.type === 'series') {
+      episodes = await Content.find({ seriesId: content._id })
+        .sort({ episodeNumber: 1 })
+        .lean();
+    }
+
+    const seriesFinished =
+      content.type === 'series' &&
+      profile &&
+      episodes.length > 0 &&
+      profile.watchProgress?.get(episodes[episodes.length - 1]._id.toString()) >=
+        (episodes[episodes.length - 1].duration || 0) - 5;
+
+    let lastWatchedEpisode = null;
+    if (profile && content.type === 'series' && episodes.length) {
+      for (let ep of episodes.reverse()) {
+        if (profile.watchProgress?.get(ep._id.toString()) > 0) {
+          lastWatchedEpisode = ep._id.toString();
+          break;
+        }
+      }
+    }
+
     const similarContents = await Content.find({
-      genre: { $in: content.genre },
       _id: { $ne: content._id },
-      isActive: true
+      genre: { $in: content.genre },
+      type: { $in: ['movie', 'series'] }
     }).limit(6).lean();
 
-    // שולח את הנתונים ל-EJS
     res.render('content', {
       content,
-      profileId: req.session?.profileId || null,
+      profile,           // ⚡ שולח את profile כדי שהטיימליין יעבוד
+      profileId: profile?._id,
+      liked,
+      watchProgress,
       episodes,
+      seriesFinished,
+      lastWatchedEpisode,
       similarContents,
-      watchProgress: 0,
-      liked: false,
-      lastWatchedEpisode: null,
-      seriesFinished: false
+      starRatingDisplay,
     });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Error fetching content');
+  } catch (err) {
+    console.error('Error loading content page:', err);
+    res.status(500).send('Server error');
   }
 };
 
@@ -438,9 +473,50 @@ const markContentAsWatched = async (req, res) => {
   }
 };
 
+const old_getContentById = async (req, res) => {
+  try {
+    // שולף את כל השדות כולל actors ו-starRating
+    const content = await Content.findById(req.params.id).lean();
+
+    if (!content) {
+      return res.status(404).send('Content not found');
+    }
+
+    // שולף פרקים אם מדובר בסדרה
+    const episodes = content.type === 'series'
+      ? await Content.find({ seriesId: content._id }).sort('episodeNumber').lean()
+      : [];
+
+    // שולף תוכן דומה (אותו סוג ז'אנר, לא כולל את אותו תוכן)
+    const similarContents = await Content.find({
+      genre: { $in: content.genre },
+      _id: { $ne: content._id },
+      isActive: true
+    }).limit(6).lean();
+
+    // שולח את הנתונים ל-EJS
+    res.render('content', {
+      content,
+      profileId: req.session?.profileId || null,
+      episodes,
+      similarContents,
+      watchProgress: 0,
+      liked: false,
+      lastWatchedEpisode: null,
+      seriesFinished: false
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error fetching content');
+  }
+};
+
+
 module.exports = {
   getAllContent,
   getContentById,
+  old_getContentById,
   createContent,
   updateContent,
   deleteContent,
