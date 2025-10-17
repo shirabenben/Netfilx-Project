@@ -319,10 +319,11 @@ const getTrendingContent = async (req, res) => {
   }
 };
 
-// Get top 5 most popular content
+// Get top 10 most popular content
 const getMostPopularContent = async (req, res) => {
   try {
     const popularContent = await Content.aggregate([
+      {$match : {'type': { '$ne': 'episode'}}},
       {
         $group: {
           _id: '$popularity',
