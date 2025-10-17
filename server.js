@@ -5,6 +5,9 @@ const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const path = require('path');
 
+// Import logger
+const logger = require('./server/middleware/logger');
+
 // Import required middleware and controllers
 const { requireAuth, requireProfile, requireAdmin } = require('./server/middleware/auth');
 const { getUserProfiles } = require('./server/controllers/userController');
@@ -24,6 +27,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ---------------------- Middleware ----------------------
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -52,9 +56,20 @@ app.set('views', path.join(__dirname, 'views'));
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)
-.then(() => console.log('MongoDB connected'))
-.catch(err => console.error('MongoDB connection error:', err));
+.then(() => {
+  console.log('MongoDB connected');
+  logger.info('Database connected successfully');
+})
+.catch(err => {
+  console.error('MongoDB connection error:', err);
+  logger.error('Database connection failed', null, err);
+});
 
+// Simple request logging
+app.use((req, res, next) => {
+  logger.info(`${req.method} ${req.url}`, { ip: req.ip });
+  next();
+});
 // Routes
 const ratingLookupRoutes = require('./server/routes/ratingLookup');
 
@@ -68,7 +83,30 @@ app.use('/api/viewing-habits', viewingHabitRoutes);
 app.use('/api/profile', profileRoutes); // Likes, etc.
 app.use('/watch-progress', watchProgressRoutes);
 app.use('/api/rating-lookup', ratingLookupRoutes);
+app.use('/player', playerRoutes);
 // Config endpoint to expose client settings
+// Root route
+app.get('/', (req, res) => {
+  if (!req.session || !req.session.userId) return res.redirect('/login.html');
+  res.redirect('/profiles');
+});
+
+// Homepage route
+app.get('/homepage', requireAuth, requireProfile, (req, res) => {
+  res.render('homepage', {
+    title: 'Netflix Project',
+    profile: req.profile,
+    user: req.user
+  });
+});
+
+app.get('/logout', (req, res) => {
+  res.redirect('/api/users/logout-view');
+});
+
+
+//---------------DELETE----------------------
+
 app.get('/api/config', (req, res) => {
   // Fetch config to get limit
   res.json({
@@ -92,18 +130,9 @@ app.post('/add-content', requireAuth, requireProfile, requireAdmin, (req, res) =
 });
 
 // Player routes
-app.use('/player', playerRoutes);
 
 // ---------------------- Main Pages ----------------------
 
-// Homepage route
-app.get('/homepage', requireAuth, requireProfile, (req, res) => {
-  res.render('homepage', {
-    title: 'Netflix Project',
-    profile: req.profile,
-    user: req.user
-  });
-});
 
 // Profiles listing
 app.get('/profiles', requireAuth, getUserProfiles);
@@ -132,15 +161,7 @@ app.get('/statistics', requireAuth, (req, res) => {
   });
 });
 
-app.get('/logout', (req, res) => {
-  res.redirect('/api/users/logout-view');
-});
 
-// Root route
-app.get('/', (req, res) => {
-  if (!req.session || !req.session.userId) return res.redirect('/login.html');
-  res.redirect('/profiles');
-});
 
 // ---------------------- Content Page ----------------------
 // Full content screen with all features
@@ -226,4 +247,5 @@ app.get('/player/:id', async (req, res) => {
 // ---------------------- Start Server ----------------------
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  logger.info(`Server started successfully on port ${PORT}`);
 });
