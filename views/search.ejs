@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="bg-dark text-white">
+    <%- include('partials/_Navbar') %>
+    
+    <div class="container-fluid mt-5 pt-4">
+        <!-- Search Results Header -->
+        <div class="mb-4">
+            <% if (searchQuery) { %>
+                <h2 class="mb-3">Search Results for "<%= searchQuery %>"</h2>
+                <p class="text-muted">Found <%= totalResults %> result<%= totalResults !== 1 ? 's' : '' %></p>
+            <% } else { %>
+                <h2 class="mb-3">Search</h2>
+                <p class="text-muted">Enter a search term to find movies and series</p>
+            <% } %>
+        </div>
+
+        <% if (results && results.length > 0) { %>
+            <!-- Search Results using ContentSlider -->
+            <%- include('partials/_ContentSlider', {
+                title: searchQuery ? `Results for "${searchQuery}"` : 'Search Results',
+                icon: '🔍',
+                containerId: 'search-results',
+                sliderId: 'search-slider',
+                leftBtnId: 'search-left-btn',
+                rightBtnId: 'search-right-btn'
+            }) %>
+            
+            <!-- Hidden data for JavaScript -->
+            <script type="application/json" id="searchResultsData">
+                <%- JSON.stringify(results) %>
+            </script>
+        <% } else if (searchQuery) { %>
+            <!-- No Results Found -->
+            <div class="text-center py-5">
+                <h4 class="mb-3">No results found</h4>
+            </div>
+        <% } else { %>
+            <!-- Empty Search State -->
+            <div class="text-center py-5">
+                <h4 class="mb-3">Start your search</h4>
+            </div>
+        <% } %>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Shared JS Functions -->
+    <script src="/shared.js"></script>
+    
+    <!-- Search-specific JavaScript -->
+    <script src="/search.js"></script>
+</body>
+</html>

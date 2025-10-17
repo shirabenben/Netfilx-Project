@@ -464,7 +464,55 @@ const markContentAsWatched = async (req, res) => {
   }
 };
 
+// Search content by name (excluding episodes)
+const searchContent = async (req, res) => {
+  try {
+    const { q: searchQuery } = req.query;
+    
+    if (!searchQuery || searchQuery.trim() === '') {
+      return res.render('search', { 
+        title: 'Search',
+        user: req.session?.user || null,
+        results: [],
+        searchQuery: '',
+        totalResults: 0
+      });
+    }
 
+    // Build search query - exclude episodes and search in title
+    const query = {
+      isActive: true,
+      type: { $ne: 'episode' }, // Exclude episodes
+      title: { $regex: searchQuery.trim(), $options: 'i' } // Case insensitive search
+    };
+
+    // Execute search query (limit to reasonable number for slider)
+    const results = await Content.find(query)
+      .select('title description genre year duration rating type imageUrl starRating')
+      .sort({ title: 1 }) // Sort alphabetically by title
+      .limit(50) // Limit results for better performance
+      .lean();
+
+    const totalResults = results.length;
+
+    // Render search results page
+    res.render('search', {
+      title: 'Search Results',
+      user: req.session?.user || null,
+      results,
+      searchQuery: searchQuery.trim(),
+      totalResults
+    });
+
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).render('error', { 
+      title: 'Error',
+      message: 'An error occurred while searching content',
+      error: error 
+    });
+  }
+};
 
 module.exports = {
   getAllContent,
@@ -478,5 +526,6 @@ module.exports = {
   getNewestMovies,
   getNewestSeries,
   markContentAsWatched,
+  searchContent,
   
 };

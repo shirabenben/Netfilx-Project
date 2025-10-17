@@ -11,7 +11,8 @@ const {
   getMostPopularContent,
   getNewestMovies,
   getNewestSeries,
-  markContentAsWatched
+  markContentAsWatched,
+  searchContent
 } = require('../controllers/contentController');
 
 const { requireAuth, requireProfile } = require('../middleware/auth');
@@ -34,6 +35,9 @@ router.get('/newest-series', getNewestSeries);
 
 // GET /api/content/genre/:genre - Content by genre
 router.get('/genre/:genre', getContentByGenre);
+
+// GET /content/search - Search content page (public access)
+router.get('/search', searchContent);
 
 // POST /api/content - Create new content
 router.post('/', createContent);
