@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Profile = require('../models/profile');
+const Profile = require('../models/Profile');
 
 /**
  * Route to update watch progress for a specific content and profile
