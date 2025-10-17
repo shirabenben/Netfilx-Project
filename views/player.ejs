@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body class="player-page">
+<!-- Include Navigation Bar -->
+<%- include('partials/_Navbar') %>
 
 <div class="player-container">
   <video id="video-player" src="<%= episode.videoUrl %>" controls></video>
