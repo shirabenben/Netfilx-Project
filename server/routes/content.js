@@ -22,8 +22,14 @@ const Content = require('../models/Content');
 // GET /api/content - Get all content with optional filtering
 router.get('/', requireAuth, requireProfile, getAllContent);
 
-// GET /api/content/trending - Trending content
-router.get('/trending', getTrendingContent);
+// GET /api/content/popular - popular content
+router.get('/popular', getMostPopularContent);
+
+// GET /api/content/popular - newsest movies content
+router.get('/newest-movies', getNewestMovies);
+
+// GET /api/content/popular - newsest series content
+router.get('/newest-series', getNewestSeries);
 
 // GET /api/content/genre/:genre - Content by genre
 router.get('/genre/:genre', getContentByGenre);
