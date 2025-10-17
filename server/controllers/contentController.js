@@ -468,7 +468,6 @@ const markContentAsWatched = async (req, res) => {
 module.exports = {
   getAllContent,
   getContentById,
-  old_getContentById,
   createContent,
   updateContent,
   deleteContent,

@@ -34,15 +34,7 @@ function createContentCard(content, showViewCount = false) {
 
 // Navigate to content detail page
 function navigateToContent(contentId) {
-    const profileId = localStorage.getItem('currentProfileId') || 
-                     new URLSearchParams(window.location.search).get('profile');
-    
-    let url = `/content/view/${contentId}`;
-    if (profileId) {
-        url += `?profileId=${profileId}`;
-    }
-    
-    window.location.href = url;
+    window.location.href = `/api/content/view/${contentId}`;
 }
 
 class ContentSlider {
