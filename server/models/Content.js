@@ -92,7 +92,7 @@ const contentSchema = new mongoose.Schema({
   similarContentIds: [{ // אופציונלי, תוכן דומה
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Content'
-  }]
+  }],
   starRating: {
     type: Number,
     default: 3,
