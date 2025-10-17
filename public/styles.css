@@ -620,3 +620,27 @@ body.player-page.btn-control:hover {
   float: right;
   margin-bottom: 10px;
 }
+
+
+
+body.content-page .episode-item:hover { background-color: #222; cursor: pointer; }
+body.content-page .episode-item .badge { font-size: 0.8rem; }
+body.content-page .similar-item:hover { opacity: 0.8; }
+body.content-page .rating-star { color: gold; margin-left: 4px; }
+
+body.content-page .timeline-container {
+    background-color: #666;
+    height: 8px;
+    width: 100%;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 4px;
+    position: relative;
+}
+
+body.content-page .timeline-watched {
+    background-color: #dc3545;
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease;
+}
