@@ -1,5 +1,7 @@
 const Content = require('../models/Content');
-const ViewingHabit = require('../models/ViewingHabit');
+const Profile = require('../models/Profile'); // Added Profile import
+
+const VALID_SORT_FIELDS = ['createdAt', 'year', 'popularity', 'starRating', 'watched', 'unwatched'];
 
 // Get all content with optional filtering
 const getAllContent = async (req, res) => {
@@ -11,9 +13,28 @@ const getAllContent = async (req, res) => {
       type,
       year,
       search,
-      sort = '-createdAt'
+      sort = '-createdAt', // Default sort
+      profileId // Profile ID for watched/unwatched sorting
     } = req.query;
 
+    // Determine actual sort field and order
+    let sortField = '-createdAt';
+    let isWatchedSort = false;
+    let watchedSortOrder = 1; // 1 for watched first, -1 for unwatched first
+    
+    if (sort) {
+      const sortOrder = sort.startsWith('-') ? -1 : 1;
+      const field = sort.startsWith('-') ? sort.substring(1) : sort;
+      
+      if (field === 'watched' || field === 'unwatched') {
+        isWatchedSort = true;
+        watchedSortOrder = field === 'watched' ? sortOrder : -sortOrder;
+      } else if (VALID_SORT_FIELDS.includes(field)) {
+        sortField = { [field]: sortOrder };
+      }
+    }
+
+    // 2. Build the query object
     const query = { isActive: true };
     if (genre) query.genre = { $in: genre.split(',') };
     if (type) query.type = type;
@@ -24,21 +45,50 @@ const getAllContent = async (req, res) => {
     const limitNum = parseInt(limit, 10);
     const skip = (pageNum - 1) * limitNum;
 
-    const [results, totalDocs] = await Promise.all([
-      Content.find(query)
-        .sort(sort)
-        .skip(skip)
-        .limit(limitNum)
-        .select('-__v')
-        .lean(),
-      Content.countDocuments(query)
+    // 4. Get watched content IDs if needed for sorting
+    let watchedContentIds = [];
+    if (isWatchedSort && profileId) {
+      const profile = await Profile.findById(profileId);
+      if (profile) {
+        watchedContentIds = profile.watchedContent.map(item => item.contentId.toString());
+      }
+    }
+
+    // 5. Execute queries
+    const [allResults, totalDocs] = await Promise.all([
+        Content.find(query)
+            .sort(isWatchedSort ? '-createdAt' : sortField) // Use default sort for watched sorting
+            .select('-__v')
+            .lean(),
+        Content.countDocuments(query)
     ]);
 
+    // 6. Apply watched/unwatched sorting if needed
+    let results = allResults;
+    if (isWatchedSort && profileId) {
+      results = allResults.sort((a, b) => {
+        const aWatched = watchedContentIds.includes(a._id.toString());
+        const bWatched = watchedContentIds.includes(b._id.toString());
+        
+        if (aWatched === bWatched) return 0;
+        if (watchedSortOrder === 1) {
+          return aWatched ? -1 : 1; // Watched first
+        } else {
+          return aWatched ? 1 : -1; // Unwatched first
+        }
+      });
+    }
+
+    // 7. Apply pagination after sorting
+    const paginatedResults = results.slice(skip, skip + limitNum);
+
+    // 8. Calculate total pages
     const totalPages = Math.ceil(totalDocs / limitNum);
 
+    // 9. Send the response
     res.json({
       success: true,
-      data: results,
+      data: paginatedResults,
       pagination: {
         total: totalDocs,
         page: pageNum,
@@ -335,6 +385,59 @@ const getNewestSeries = async (req, res) => {
   }
 };
 
+const markContentAsWatched = async (req, res) => {
+  try {
+    const { profileId, contentId, watched, duration = 0 } = req.body;
+
+    const profile = await Profile.findById(profileId);
+    if (!profile) {
+      return res.status(404).json({ success: false, message: 'Profile not found' });
+    }
+
+    // Verify content exists
+    const content = await Content.findById(contentId);
+    if (!content) {
+      return res.status(404).json({ success: false, message: 'Content not found' });
+    }
+
+    if (watched) {
+      // Check if content is already in watchedContent
+      const alreadyWatched = profile.watchedContent.some(
+        (item) => item.contentId.toString() === contentId
+      );
+
+      if (!alreadyWatched) {
+        // Add new viewing history entry
+        profile.watchedContent.push({
+          contentId: contentId,
+          watchedAt: new Date(),
+          duration: duration
+        });
+      } else {
+        // Update existing entry's watchedAt and duration
+        const existingEntry = profile.watchedContent.find(
+          (item) => item.contentId.toString() === contentId
+        );
+        existingEntry.watchedAt = new Date();
+        if (duration > 0) {
+          existingEntry.duration = duration;
+        }
+      }
+    } else {
+      // Remove from watchedContent
+      profile.watchedContent = profile.watchedContent.filter(
+        (item) => item.contentId.toString() !== contentId
+      );
+    }
+
+    await profile.save();
+
+    res.json({ success: true, message: 'Profile content watch status updated successfully', data: profile });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error updating content watch status', error: error.message });
+  }
+};
+
 module.exports = {
   getAllContent,
   getContentById,
@@ -345,5 +448,6 @@ module.exports = {
   getTrendingContent,
   getMostPopularContent,
   getNewestMovies,
-  getNewestSeries
+  getNewestSeries,
+  markContentAsWatched,
 };

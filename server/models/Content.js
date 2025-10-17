@@ -93,6 +93,18 @@ const contentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Content'
   }]
+  starRating: {
+    type: Number,
+    default: 3,
+    min: 1,
+    max: 5
+  },
+  popularity: {
+    type: Number,
+    default: 1,
+    min: 1,
+    max: 5
+  }
 }, {
   timestamps: true
 });

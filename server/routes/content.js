@@ -7,15 +7,20 @@ const {
   deleteContent,
   getContentByGenre,
   getTrendingContent,
+  getMostPopularContent,
+  getNewestMovies,
+  getNewestSeries,
+  markContentAsWatched
 } = require('../controllers/contentController');
 
+const { requireAuth, requireProfile } = require('../middleware/auth');
 const Profile = require('../models/Profile');
 const Content = require('../models/Content');
 
 // ---------------- Existing API routes ----------------
 
-// GET /api/content - Get all content
-router.get('/', getAllContent);
+// GET /api/content - Get all content with optional filtering
+router.get('/', requireAuth, requireProfile, getAllContent);
 
 // GET /api/content/trending - Trending content
 router.get('/trending', getTrendingContent);
@@ -163,5 +168,7 @@ router.get('/view/:id', async (req, res) => {
     res.status(500).send('Server error');
   }
 });
+// PUT /api/content/mark-watched - Mark content as watched or unwatched for a profile
+router.put('/mark-watched', markContentAsWatched);
 
 module.exports = router;

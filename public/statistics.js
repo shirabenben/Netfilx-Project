@@ -6,6 +6,9 @@ let genrePopularityChart = null;
 let currentDays = 7;
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Check if migration is needed first
+    checkMigrationStatus();
+    
     loadStatistics(currentDays);
 
     // Date range selector
@@ -56,6 +59,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
 });
 
 async function loadStatistics(days) {
@@ -70,14 +74,25 @@ async function loadStatistics(days) {
 
         const data = await response.json();
 
+        console.log('Statistics API Response:', data);
+
         if (!data.success) {
             throw new Error(data.message || 'Failed to load statistics');
         }
 
         if (data.data.totalViews === 0) {
+            console.log('No viewing data found (totalViews is 0)');
             showNoData();
             return;
         }
+
+        console.log('Displaying statistics:', {
+            totalViews: data.data.totalViews,
+            uniqueContent: data.data.uniqueContent,
+            contentTypes: data.data.contentTypes,
+            contentByGenre: data.data.contentByGenre,
+            profileStats: data.data.profileStats
+        });
 
         displayStatistics(data.data);
         hideLoading();
@@ -90,22 +105,30 @@ async function loadStatistics(days) {
 }
 
 function displayStatistics(stats) {
+    console.log('displayStatistics called with:', stats);
+    
     // Update overview cards
     document.getElementById('total-views').textContent = stats.totalViews;
     document.getElementById('unique-content').textContent = stats.uniqueContent;
     document.getElementById('total-hours').textContent = stats.totalHours.toFixed(1);
     document.getElementById('liked-content').textContent = stats.likedContent;
 
+    console.log('Creating charts...');
+
     // Create daily views chart
+    console.log('Daily views data:', stats.dailyViews);
     createDailyViewsChart(stats.dailyViews, stats.profiles);
 
     // Create content type chart
+    console.log('Content types data:', stats.contentTypes);
     createContentTypeChart(stats.contentTypes);
 
     // Create genre popularity chart
+    console.log('Genre data:', stats.contentByGenre);
     createGenrePopularityChart(stats.contentByGenre);
 
     // Display profile stats
+    console.log('Profile stats data:', stats.profileStats);
     displayProfileStats(stats.profileStats);
 }
 
@@ -117,6 +140,13 @@ function createDailyViewsChart(dailyViews, profiles) {
     // Destroy existing chart if it exists
     if (dailyViewsChart) {
         dailyViewsChart.destroy();
+    }
+
+    // Check if we have data
+    if (!dailyViews || dailyViews.length === 0 || !profiles || profiles.length === 0) {
+        console.log('No daily views data available');
+        ctx.parentElement.innerHTML = '<p class="text-white text-center">No daily viewing data available</p>';
+        return;
     }
 
     // Generate colors for each profile
@@ -212,6 +242,13 @@ function createContentTypeChart(contentTypes) {
         contentTypeChart.destroy();
     }
 
+    // Check if we have data
+    if (!contentTypes || contentTypes.length === 0) {
+        console.log('No content types data available');
+        ctx.parentElement.innerHTML = '<p class="text-white text-center">No content type data available</p>';
+        return;
+    }
+
     const data = {
         labels: contentTypes.map(ct => ct.type),
         datasets: [{
@@ -265,11 +302,18 @@ function createContentTypeChart(contentTypes) {
 function createGenrePopularityChart(contentByGenre) {
     const ctx = document.getElementById('genrePopularityChart');
     
-    if (!ctx || !contentByGenre || contentByGenre.length === 0) return;
+    if (!ctx) return;
 
     // Destroy existing chart if it exists
     if (genrePopularityChart) {
         genrePopularityChart.destroy();
+    }
+
+    // Check if we have genre data
+    if (!contentByGenre || contentByGenre.length === 0) {
+        console.log('No genre data available');
+        ctx.parentElement.innerHTML = '<p class="text-white text-center">No genre data available yet. Watch some content to see genre statistics!</p>';
+        return;
     }
 
     // Color palette for genres
@@ -361,6 +405,12 @@ function displayProfileStats(profileStats) {
 
     container.innerHTML = '';
 
+    if (!profileStats || profileStats.length === 0) {
+        console.log('No profile stats available');
+        container.innerHTML = '<p class="text-white text-center">No profile statistics available</p>';
+        return;
+    }
+
     profileStats.forEach(profile => {
         const statCard = document.createElement('div');
         statCard.className = 'profile-stat-card';
@@ -428,5 +478,27 @@ function showAlert(type, message) {
         alertDiv.classList.remove('show');
         setTimeout(() => alertDiv.remove(), 150);
     }, 5000);
+}
+
+async function checkMigrationStatus() {
+    try {
+        const response = await fetch('/api/users/check-migration');
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log('Migration Status:', data.data);
+            
+            if (data.needsMigration && data.data.viewingHabits > 0) {
+                showAlert('info', 
+                    `You have ${data.data.viewingHabits} viewing records that can be migrated. ` +
+                    `Click "Migrate Viewing History" to see your statistics.`
+                );
+            } else if (data.data.watchedContent === 0 && data.data.viewingHabits === 0) {
+                console.log('No viewing history found');
+            }
+        }
+    } catch (error) {
+        console.error('Error checking migration status:', error);
+    }
 }
 

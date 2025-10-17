@@ -11,7 +11,9 @@ const {
   updateUser,
   deleteUser,
   getUserStatistics,
-  migrateViewingHistory
+  migrateViewingHistory,
+  getWatchedContent,
+  getUnwatchedContent
 } = require('../controllers/userController');
 
 const { requireAuth, requireProfile, login, logout } = require('../middleware/auth');
@@ -30,6 +32,12 @@ router.get('/logout', logout);
 
 // GET /api/users/profiles - Get user profiles as JSON (protected)
 router.get('/profiles', requireAuth, getUserProfiles);
+
+// GET /api/users/profiles/:profileId/watched - Get watched content for a profile (protected)
+router.get('/profiles/:profileId/watched', requireAuth, getWatchedContent);
+
+// GET /api/users/profiles/:profileId/unwatched - Get unwatched content for a profile (protected)
+router.get('/profiles/:profileId/unwatched', requireAuth, getUnwatchedContent);
 
 // GET /api/users/settings - Settings page for managing profiles (protected)
 router.get('/settings', requireAuth, async (req, res) => {
@@ -91,6 +99,55 @@ router.get('/statistics', requireAuth, getUserStatistics);
 
 // POST /api/users/migrate-viewing-history - Migrate existing viewing habits to watchedContent (protected)
 router.post('/migrate-viewing-history', requireAuth, migrateViewingHistory);
+
+// GET /api/users/check-migration - Check if migration is needed (protected)
+router.get('/check-migration', requireAuth, async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const ViewingHabit = require('../models/ViewingHabit');
+    const Profile = require('../models/Profile');
+    
+    const user = await User.findById(req.user._id).populate('profiles');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    
+    let totalViewingHabits = 0;
+    let totalWatchedContent = 0;
+    const profileDetails = [];
+    
+    for (const profile of user.profiles) {
+      const habits = await ViewingHabit.find({ profile: profile._id });
+      
+      // Get the actual profile with watched content
+      const fullProfile = await Profile.findById(profile._id);
+      const watchedCount = fullProfile?.watchedContent?.length || 0;
+      
+      totalViewingHabits += habits.length;
+      totalWatchedContent += watchedCount;
+      
+      profileDetails.push({
+        name: profile.name,
+        viewingHabits: habits.length,
+        watchedContent: watchedCount,
+        sampleDates: fullProfile?.watchedContent?.slice(0, 3).map(w => w.watchedAt) || []
+      });
+    }
+    
+    res.json({
+      success: true,
+      needsMigration: totalViewingHabits > totalWatchedContent,
+      data: {
+        profiles: user.profiles.length,
+        viewingHabits: totalViewingHabits,
+        watchedContent: totalWatchedContent,
+        profileDetails: profileDetails
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 // POST /api/users/profiles - Create new profile (protected)
 router.post('/profiles', requireAuth, createProfile);

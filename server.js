@@ -68,7 +68,19 @@ app.use('/api/viewing-habits', viewingHabitRoutes);
 app.use('/api/profile', profileRoutes); // Likes, etc.
 app.use('/watch-progress', watchProgressRoutes);
 app.use('/api/rating-lookup', ratingLookupRoutes);
-
+// Config endpoint to expose client settings
+app.get('/api/config', (req, res) => {
+  // Fetch config to get limit
+  res.json({
+    contentFetchLimit: parseInt(process.env.CONTENT_FETCH_LIMIT || '1000', 10)
+  });
+});// Config endpoint to expose client settings
+app.get('/api/config', (req, res) => {
+  // Fetch config to get limit
+  res.json({
+    contentFetchLimit: parseInt(process.env.CONTENT_FETCH_LIMIT || '1000', 10)
+  });
+});
 // Add content form route
 app.get('/add-content', requireAuth, requireProfile, requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'add-content.html'));
@@ -97,6 +109,29 @@ app.get('/homepage', requireAuth, requireProfile, (req, res) => {
 app.get('/profiles', requireAuth, getUserProfiles);
 
 // Logout redirect
+app.get('/movies', requireAuth, requireProfile, (req, res) => {
+  res.render('movies', { 
+    title: 'Netflix Project - Movies',
+    profile: req.profile,
+    user: req.user
+  });
+});
+
+app.get('/series', requireAuth, requireProfile, (req, res) => {
+  res.render('series', { 
+    title: 'Netflix Project - Series',
+    profile: req.profile,
+    user: req.user
+  });
+});
+
+app.get('/statistics', requireAuth, (req, res) => {
+  res.render('statistics', { 
+    title: 'Netflix Project - Statistics',
+    user: req.user
+  });
+});
+
 app.get('/logout', (req, res) => {
   res.redirect('/api/users/logout-view');
 });

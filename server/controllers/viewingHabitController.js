@@ -46,6 +46,7 @@ exports.createOrUpdateViewingHabit = async (req, res) => {
 
     // Update or create viewing habit
     let viewingHabit = await ViewingHabit.findOne({ profile: profile_Id, content: contentId });
+    let isNewViewing = false;
 
     if (viewingHabit) {
       // Update existing habit
@@ -54,6 +55,7 @@ exports.createOrUpdateViewingHabit = async (req, res) => {
       viewingHabit.lastWatched = Date.now();
     } else {
       // Create new habit
+      isNewViewing = true;
       viewingHabit = new ViewingHabit({
         profile: profile_Id,
         content: contentId,
@@ -64,15 +66,24 @@ exports.createOrUpdateViewingHabit = async (req, res) => {
 
     await viewingHabit.save();
 
-    // Add to profile's watchedContent array for statistics
-    const profile = await Profile.findById(profile_Id);
-    if (profile) {
-      profile.watchedContent.push({
-        contentId: contentId,
-        watchedAt: new Date(),
-        duration: duration || 0
-      });
-      await profile.save();
+    // Add to profile's watchedContent array for statistics ONLY if it's a new viewing
+    if (isNewViewing) {
+      const profile = await Profile.findById(profile_Id);
+      if (profile) {
+        // Check if content already exists in watchedContent to avoid duplicates
+        const alreadyWatched = profile.watchedContent.some(
+          item => item.contentId.toString() === contentId.toString()
+        );
+        
+        if (!alreadyWatched) {
+          profile.watchedContent.push({
+            contentId: contentId,
+            watchedAt: new Date(),
+            duration: duration || 0
+          });
+          await profile.save();
+        }
+      }
     }
 
     res.status(201).json(viewingHabit);
