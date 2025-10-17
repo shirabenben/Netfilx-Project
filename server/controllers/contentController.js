@@ -322,40 +322,30 @@ const getTrendingContent = async (req, res) => {
 // Get top 5 most popular content
 const getMostPopularContent = async (req, res) => {
   try {
-    const popularContent = await ViewingHabit.aggregate([
+    const popularContent = await Content.aggregate([
       {
         $group: {
-          _id: '$content',
-          viewCount: { $sum: 1 },
-          avgProgress: { $avg: '$watchProgress' }
+          _id: '$popularity',
+          maxYear: {$max: '$year'},
+          content: { $push: '$$ROOT' }
         }
       },
-      { $sort: { viewCount: -1, avgProgress: -1 } },
-      { $limit: 5 },
-      {
-        $lookup: {
-          from: 'contents',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'contentDetails'
-        }
-      },
-      { $unwind: '$contentDetails' },
-      { $match: { 'contentDetails.isActive': true } },
+      { $unwind: '$content' },
+      {$sort:{_id: -1, 'content.year': -1}},
+      {$limit: 10},
       {
         $project: {
-          _id: '$contentDetails._id',
-          title: '$contentDetails.title',
-          description: '$contentDetails.description',
-          genre: '$contentDetails.genre',
-          year: '$contentDetails.year',
-          type: '$contentDetails.type',
-          imageUrl: '$contentDetails.imageUrl',
-          viewCount: 1
+          _id: '$content._id',
+          title: '$content.title',
+          description: '$content.description',
+          genre: '$content.genre',
+          year: '$content.year',
+          type: '$content.type',
+          imageUrl: '$content.imageUrl',
+          popularity: '$content.popularity'
         }
       }
     ]);
-
     res.json({
       success: true,
       count: popularContent.length,
@@ -370,7 +360,7 @@ const getMostPopularContent = async (req, res) => {
   }
 };
 
-// Get top 5 newest movies
+// Get top 10 newest movies
 const getNewestMovies = async (req, res) => {
   try {
     const newestMovies = await Content.find({
@@ -378,7 +368,7 @@ const getNewestMovies = async (req, res) => {
       isActive: true
     })
       .sort({ createdAt: -1 })
-      .limit(5)
+      .limit(10)
       .select('title description genre year type imageUrl createdAt');
 
     res.json({
@@ -395,7 +385,7 @@ const getNewestMovies = async (req, res) => {
   }
 };
 
-// Get top 5 newest series
+// Get top 10 newest series
 const getNewestSeries = async (req, res) => {
   try {
     const newestSeries = await Content.find({
@@ -403,7 +393,7 @@ const getNewestSeries = async (req, res) => {
       isActive: true
     })
       .sort({ createdAt: -1 })
-      .limit(5)
+      .limit(10)
       .select('title description genre year type imageUrl createdAt');
 
     res.json({
