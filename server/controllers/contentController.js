@@ -473,44 +473,6 @@ const markContentAsWatched = async (req, res) => {
   }
 };
 
-const old_getContentById = async (req, res) => {
-  try {
-    // שולף את כל השדות כולל actors ו-starRating
-    const content = await Content.findById(req.params.id).lean();
-
-    if (!content) {
-      return res.status(404).send('Content not found');
-    }
-
-    // שולף פרקים אם מדובר בסדרה
-    const episodes = content.type === 'series'
-      ? await Content.find({ seriesId: content._id }).sort('episodeNumber').lean()
-      : [];
-
-    // שולף תוכן דומה (אותו סוג ז'אנר, לא כולל את אותו תוכן)
-    const similarContents = await Content.find({
-      genre: { $in: content.genre },
-      _id: { $ne: content._id },
-      isActive: true
-    }).limit(6).lean();
-
-    // שולח את הנתונים ל-EJS
-    res.render('content', {
-      content,
-      profileId: req.session?.profileId || null,
-      episodes,
-      similarContents,
-      watchProgress: 0,
-      liked: false,
-      lastWatchedEpisode: null,
-      seriesFinished: false
-    });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Error fetching content');
-  }
-};
 
 
 module.exports = {
