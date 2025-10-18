@@ -253,8 +253,28 @@ const createProfile = async (req, res) => {
     const { name } = req.body;
     const userId = req.user._id;
 
+    console.log('Creating profile:', { name, userId });
+
+    // Validate input
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Profile name is required'
+      });
+    }
+
     // Check if user already has 5 profiles (max limit)
-    const user = await User.findById(userId).populate('profiles');
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    console.log('User has', user.profiles.length, 'profiles');
+
     if (user.profiles.length >= 5) {
       return res.status(400).json({
         success: false,
@@ -262,17 +282,30 @@ const createProfile = async (req, res) => {
       });
     }
 
+    // Check if profile name already exists for this user
+    const existingProfile = await Profile.findOne({ user: userId, name: name.trim() });
+    if (existingProfile) {
+      console.log('Profile name already exists:', existingProfile._id);
+      return res.status(400).json({
+        success: false,
+        message: 'A profile with this name already exists'
+      });
+    }
+
     // Create new profile
     const profile = new Profile({
-      name,
+      name: name.trim(),
       user: userId
     });
 
     await profile.save();
+    console.log('Profile created:', profile._id);
 
-    // Add profile to user's profiles array
-    user.profiles.push(profile._id);
-    await user.save();
+    // Add profile to user's profiles array (using update to avoid re-validating password)
+    await User.findByIdAndUpdate(userId, {
+      $push: { profiles: profile._id }
+    });
+    console.log('Profile added to user');
 
     res.status(201).json({
       success: true,
@@ -280,12 +313,28 @@ const createProfile = async (req, res) => {
       data: profile
     });
   } catch (error) {
+    console.error('Error creating profile:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      code: error.code
+    });
+
     if (error.code === 11000) {
       return res.status(400).json({
         success: false,
         message: 'Profile name already exists for this user'
       });
     }
+
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: errors.join(', ')
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Error creating profile',
@@ -445,7 +494,7 @@ const deleteProfile = async (req, res) => {
     }
 
     // Check if user has only one profile (prevent deletion of last profile)
-    const user = await User.findById(userId).populate('profiles');
+    const user = await User.findById(userId);
     if (user.profiles.length <= 1) {
       return res.status(400).json({
         success: false,
@@ -453,18 +502,20 @@ const deleteProfile = async (req, res) => {
       });
     }
 
-    // Remove profile from user's profiles array
-    user.profiles = user.profiles.filter(p => p._id.toString() !== profileId.toString());
-    await user.save();
-
-    // Delete the profile
+    // Delete the profile first
     await Profile.findByIdAndDelete(profileId);
+
+    // Remove profile from user's profiles array (using update to avoid re-validating password)
+    await User.findByIdAndUpdate(userId, {
+      $pull: { profiles: profileId }
+    });
 
     res.json({
       success: true,
       message: 'Profile deleted successfully'
     });
   } catch (error) {
+    console.error('Error deleting profile:', error);
     res.status(500).json({
       success: false,
       message: 'Error deleting profile',

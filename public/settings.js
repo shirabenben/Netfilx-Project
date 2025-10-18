@@ -139,25 +139,38 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function createProfile(name) {
         try {
+            console.log('Creating profile with name:', name);
+            
             const response = await fetch('/api/users/profiles', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ name })
+                body: JSON.stringify({ name: name })
             });
 
-            const data = await response.json();
+            console.log('Response status:', response.status);
+            
+            let data;
+            try {
+                data = await response.json();
+                console.log('Response data:', data);
+            } catch (parseError) {
+                console.error('Failed to parse response:', parseError);
+                showAlert('danger', 'Server returned an invalid response');
+                return;
+            }
 
-            if (response.ok) {
+            if (response.ok && data.success) {
                 showAlert('success', 'Profile created successfully!');
                 setTimeout(() => location.reload(), 1000);
             } else {
-                showAlert('danger', data.message || 'Failed to create profile');
+                console.error('Failed to create profile:', { status: response.status, data: data });
+                showAlert('danger', data.message || 'Error creating profile');
             }
         } catch (error) {
             console.error('Error creating profile:', error);
-            showAlert('danger', 'An error occurred while creating the profile');
+            showAlert('danger', 'Network error: Could not connect to server');
         }
     }
 
