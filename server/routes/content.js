@@ -11,6 +11,7 @@ const {
   getMostPopularContent,
   getNewestMovies,
   getNewestSeries,
+  getCountinueWatchContent,
   markContentAsWatched,
   searchContent
 } = require('../controllers/contentController');
@@ -27,10 +28,13 @@ router.get('/', requireAuth, requireProfile, getAllContent);
 // GET /api/content/popular - popular content
 router.get('/popular', getMostPopularContent);
 
-// GET /api/content/popular - newsest movies content
+// GET /api/content/continue-watching - Continue watching content
+router.get('/continue-watching', getCountinueWatchContent);
+
+// GET /api/content/newest-movies - newest movies content
 router.get('/newest-movies', getNewestMovies);
 
-// GET /api/content/popular - newsest series content
+// GET /api/content/newest-series - newest series content
 router.get('/newest-series', getNewestSeries);
 
 // GET /api/content/genre/:genre - Content by genre

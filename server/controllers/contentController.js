@@ -411,6 +411,49 @@ const getNewestSeries = async (req, res) => {
   }
 };
 
+const getCountinueWatchContent = async (req, res) => {
+  try {
+    const profileId = req.session?.profileId;
+    
+    if (!profileId) {
+      return res.json({ success: true, count: 0, data: [] });
+    }
+
+    const profile = await Profile.findById(profileId)
+      .populate('watchedContent.contentId')
+      .lean();
+
+    if (!profile || !profile.watchedContent) {
+      return res.json({ success: true, count: 0, data: [] });
+    }
+
+    // Filter out completed series and null content, sort by most recent, limit to 10
+    const continueWatching = profile.watchedContent
+      .filter(item => {
+        if (!item.contentId || !item.contentId.isActive) return false;
+        const isCompleted = profile.completedSeries?.some(
+          id => id.toString() === item.contentId._id.toString()
+        );
+        return !isCompleted;
+      })
+      .sort((a, b) => new Date(b.watchedAt) - new Date(a.watchedAt))
+      .slice(0, 10)
+      .map(item => item.contentId);
+
+    res.json({
+      success: true,
+      count: continueWatching.length,
+      data: continueWatching
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching continue watching content',
+      error: error.message
+    });
+  }
+};
+
 const markContentAsWatched = async (req, res) => {
   try {
     const { profileId, contentId, watched, duration = 0 } = req.body;
@@ -525,6 +568,7 @@ module.exports = {
   getMostPopularContent,
   getNewestMovies,
   getNewestSeries,
+  getCountinueWatchContent,
   markContentAsWatched,
   searchContent,
   
