@@ -1,559 +1,559 @@
 # Netflix Clone - Content Distribution Platform
 
-Final Assignment for the Web Application Development Course. This project is a comprehensive web-based platform for distributing digital content, inspired by Netflix, built with Node.js, Express, and MongoDB following the MVC architecture pattern.
+A full-stack web application for streaming movies and TV series, built with Node.js, Express, MongoDB, and vanilla JavaScript. This project implements a Netflix-like platform with user authentication, profile management, content playback, and personalized recommendations.
 
-## 🎯 Key Features
+## 📋 Table of Contents
 
-### Core Functionality
-- **Secure User Authentication**: Registration and login with encrypted passwords using bcrypt
-- **Multiple Profile Management**: Up to 5 profiles per user account
-- **Content Catalog Management**: Browse, search, and filter movies and series by genre, rating, and popularity
-- **Personalized Experience**: Continue watching from where you left off (with 10-second accuracy)
-- **Custom Catalogs**: Create watchlists, favorites, and custom content collections
-- **Viewing Habits Tracking**: Monitor user engagement and viewing progress
-- **Admin Content Management**: Admin-only interface for adding new content
-- **Responsive Design**: Fully optimized for desktop, tablet, and mobile devices
+- [Features](#features)
+- [Technology Stack](#technology-stack)
+- [Project Structure](#project-structure)
+- [Setup Instructions](#setup-instructions)
+- [Running the Application](#running-the-application)
+- [Environment Variables](#environment-variables)
+- [Database Models](#database-models)
+- [API Endpoints](#api-endpoints)
+- [User Roles](#user-roles)
+- [Key Features Explained](#key-features-explained)
 
-### Advanced Features
-- **Dynamic Genre Detection**: Automatically categorizes content by genres from database
-- **Popular Content Aggregation**: GroupBy queries to display trending content
-- **Infinite Scroll**: Seamless browsing experience within genre pages
-- **Content Filtering**: Filter by watched/unwatched status
-- **Search Functionality**: Full-text search across content titles and descriptions
-- **Activity Logging**: Comprehensive error and operational event logging to database
+---
 
-## 🛠 Technologies Used
+## ✨ Features
 
-- **Backend**: Node.js, Express.js
-- **Database**: MongoDB with Mongoose ODM
-- **Frontend**: HTML5, CSS3, JavaScript (ES6+), Bootstrap
-- **Authentication**: bcrypt for password hashing, express-session for session management
-- **Template Engine**: EJS for server-side rendering
-- **Additional Libraries**: mongoose-paginate-v2 for pagination, connect-mongo for session storage
+### User Management
+- **User Registration & Login** with password encryption (bcrypt)
+- **Session Management** using express-session and MongoDB store
+- **Multiple Profiles** per user account (up to 5 profiles)
+- **Profile Switching** to maintain separate viewing histories and preferences
 
-## 📋 Setup Instructions
+### Content Browsing
+- **Homepage Feed** with personalized content recommendations
+- **Continue Watching** section to resume playback from where you left off
+- **Genre Navigation** with dynamic genre detection from database
+- **Content Search** by title
+- **Popular Content** display using aggregation queries
+- **Newest Content** for each genre (top 10)
+- **Similar Content** recommendations based on genre matching
 
-### Prerequisites
-- **Node.js** (v14 or higher)
-- **MongoDB** (local installation or MongoDB Atlas)
-- **Git** for version control
+### Content Playback
+- **Video Player** with standard controls (play/pause, timeline, fullscreen)
+- **Advanced Controls** (skip forward/backward 10 seconds)
+- **Resume Playback** across devices with position tracking
+- **Episode List** for series with progress indicators
+- **Next Episode** button for seamless binge-watching
 
-### Windows Setup (PowerShell)
-1. **Clone the repository**:
-   ```powershell
-   git clone https://github.com/shirabenben/Netfilx-Project.git
-   cd Netfilx-Project
-   ```
+### Content Details
+- Full content information (synopsis, rating, year, genre)
+- Like/Unlike functionality per profile
+- Similar content suggestions
+- Episode list with watch progress for TV series
+- Actor information with Wikipedia integration
 
-2. **Install dependencies**:
-   ```powershell
-   npm install
-   ```
+### Admin Features
+- **Add Content** page (admin-only access)
+- Upload videos (MP4) and thumbnail images
+- External API integration for content ratings (OMDb API)
+- Content management (create, edit, delete)
 
-3. **Environment Configuration**:
-   The project includes environment variables configured for shared development:
-   - `PORT=3000` - Server port
-   - MongoDB connection string (pre-configured for team access)
-   
-   Create a `.env` file if you need custom configuration.
+### Statistics & Analytics
+- **Viewing Statistics** with dynamic charts
+- Daily views per profile (bar chart)
+- Content popularity by genre (pie chart)
+- Watch history tracking
 
-4. **Start the development server**:
-   ```powershell
-   npm run dev    # For development with auto-restart
-   # OR
-   npm start      # For production mode
-   ```
+### Genre Pages
+- Infinite scroll for content browsing
+- Sort by rating, popularity, year
+- Filter by watched/unwatched status
+- Responsive grid layout
 
-5. **Access the application**:
-   Open your browser and navigate to `http://localhost:3000`
+---
 
-### Alternative: Using MongoDB Atlas
-The project is pre-configured to use MongoDB Atlas cloud database. No local MongoDB installation required.
+## 🛠 Technology Stack
+
+### Frontend
+- **HTML5** - Semantic markup
+- **CSS3** - Custom styling with responsive design
+- **Bootstrap 5** - UI components and grid system
+- **JavaScript (ES6+)** - Client-side logic and interactivity
+
+### Backend
+- **Node.js** - Runtime environment
+- **Express.js** - Web application framework
+- **EJS** - Server-side templating engine
+
+### Database
+- **MongoDB** - NoSQL database
+- **Mongoose** - ODM (Object Data Modeling) library
+
+### Security & Authentication
+- **bcrypt** - Password hashing
+- **express-session** - Session management
+- **connect-mongo** - MongoDB session store
+
+### Additional Libraries
+- **dotenv** - Environment variable management
+- **axios** - HTTP client for API requests
+- **nodemon** - Development server with auto-restart
+
+---
 
 ## 📁 Project Structure
 
 ```
 Netfilx-Project/
-├── 📄 package.json           # Project dependencies and npm scripts
-├── 📄 project_requirements.md # Detailed project specifications
-├── 📄 README.md              # This documentation file
-├── 📄 server.js              # Main application entry point
-├── 📁 public/                # Static frontend files
-│   ├── 📄 app.js             # Main client-side JavaScript
-│   ├── 📄 login.html         # Login page
-│   ├── 📄 login.js           # Login page functionality
-│   ├── 📄 register.html      # User registration page
-│   ├── 📄 register.js        # Registration page functionality
-│   └── 📄 styles.css         # Global CSS styles
-├── 📁 server/                # Backend application logic
-│   ├── 📁 controllers/       # Request handling logic (MVC Controllers)
-│   │   ├── 📄 catalogController.js    # Catalog CRUD operations
-│   │   ├── 📄 contentController.js    # Content management logic
-│   │   ├── 📄 userController.js       # User authentication & management
-│   │   └── 📄 viewingHabitController.js # Viewing progress tracking
-│   ├── 📁 middleware/        # Custom middleware functions
-│   │   ├── 📄 auth.js        # Authentication middleware
-│   │   └── 📄 logger.js      # Request logging middleware
-│   ├── 📁 models/            # Database schemas and models (MVC Models)
-│   │   ├── 📄 Catalog.js     # Personal content collections schema
-│   │   ├── 📄 Content.js     # Movies/series content schema
-│   │   ├── 📄 Log.js         # System logging schema
-│   │   ├── 📄 Profile.js     # User profile schema
-│   │   ├── 📄 User.js        # User account schema
-│   │   └── 📄 ViewingHabit.js # Viewing progress & preferences schema
-│   ├── 📁 routes/            # API route definitions
-│   │   ├── 📄 catalogs.js    # Catalog management endpoints
-│   │   ├── 📄 content.js     # Content CRUD endpoints
-│   │   ├── 📄 users.js       # User management endpoints
-│   │   └── 📄 viewingHabits.js # Viewing tracking endpoints
-│   └── 📁 utils/             # Utility functions and helpers
-├── 📁 tests/                 # Test suites (unit & integration)
-│   ├── 📁 integration/       # API integration tests
-│   └── 📁 unit/              # Unit tests for individual components
-└── 📁 views/                 # Server-side templates (MVC Views)
-    ├── 📄 error.ejs          # Error page template
-    ├── 📄 homepage.ejs       # Main dashboard template
-    ├── 📄 profile.ejs        # User profile management template
-    └── 📁 partials/          # Reusable template components
-        ├── 📄 _ContentSlider.ejs # Content carousel component
-        └── 📄 _Navbar.ejs     # Navigation bar component
+├── server.js                    # Main application entry point
+├── package.json                 # Project dependencies and scripts
+├── .env                         # Environment variables (not in repo)
+├── README.md                    # This file
+│
+├── public/                      # Static client-side files
+│   ├── styles.css              # Global styles
+│   ├── shared.js               # Shared client utilities
+│   ├── login.html              # Login page
+│   ├── login.js                # Login page logic
+│   ├── register.html           # Registration page
+│   ├── register.js             # Registration logic
+│   ├── homepage.js             # Homepage client logic
+│   ├── content.js              # Content details page logic
+│   ├── player.js               # Video player controls
+│   ├── movies.js               # Movies page logic
+│   ├── series.js               # Series page logic
+│   ├── search.js               # Search functionality
+│   ├── settings.js             # Settings page logic
+│   ├── statistics.js           # Statistics charts
+│   └── add-content.html        # Admin content upload form
+│
+├── server/                      # Server-side code
+│   ├── models/                 # Database models (Mongoose schemas)
+│   │   ├── User.js             # User model with profiles
+│   │   ├── Profile.js          # Profile model with viewing data
+│   │   ├── Content.js          # Content model (movies/series/episodes)
+│   │   ├── ViewingHabit.js     # Viewing habits tracking
+│   │   ├── ViewingHistory.js   # Watch history schema
+│   │   ├── Catalog.js          # User content catalogs
+│   │   └── Log.js              # System logging model
+│   │
+│   ├── controllers/            # Business logic
+│   │   ├── userController.js        # User CRUD operations
+│   │   ├── profileController.js     # Profile management
+│   │   ├── contentController.js     # Content CRUD & queries
+│   │   ├── playerController.js      # Player page rendering
+│   │   ├── catalogController.js     # User catalog management
+│   │   └── viewingHabitController.js # Viewing habits tracking
+│   │
+│   ├── routes/                 # API route definitions
+│   │   ├── users.js            # User authentication & management
+│   │   ├── profile.js          # Profile operations
+│   │   ├── content.js          # Content CRUD endpoints
+│   │   ├── player.js           # Player page routes
+│   │   ├── catalogs.js         # Catalog endpoints
+│   │   ├── viewingHabits.js    # Viewing habits endpoints
+│   │   ├── watchProgress.js    # Watch position tracking
+│   │   └── ratingLookup.js     # External API for ratings
+│   │
+│   ├── middleware/             # Custom middleware
+│   │   ├── auth.js             # Authentication & authorization
+│   │   └── logger.js           # Request/error logging
+│   │
+│   ├── services/               # External services
+│   │   └── omdbService.js      # OMDb API integration
+│   │
+│   └── utils/                  # Utility functions
+│
+└── views/                      # EJS templates (server-side rendered)
+    ├── homepage.ejs            # Main feed page
+    ├── profile.ejs             # Profile selection page
+    ├── content.ejs             # Content details page
+    ├── player.ejs              # Video player page
+    ├── movies.ejs              # Movies genre page
+    ├── series.ejs              # Series genre page
+    ├── search.ejs              # Search results page
+    ├── settings.ejs            # User settings page
+    ├── statistics.ejs          # Statistics dashboard
+    ├── error.ejs               # Error page
+    └── partials/               # Reusable template components
+        ├── _Navbar.ejs         # Navigation bar
+        ├── _ReverseNavbar.ejs  # Reverse color navbar
+        └── _ContentSlider.ejs  # Content carousel component
 ```
 
-## 🗂 Detailed File Documentation
+---
 
-### 📁 Models (Database Schemas)
+## 🚀 Setup Instructions
 
-#### 📄 `User.js` - User Account Management
-**Purpose**: Handles user authentication, account information, and profile associations.
+### Prerequisites
+- **Node.js** (v14 or higher)
+- **MongoDB** (v4.4 or higher)
+- **npm** (comes with Node.js)
 
-**Key Features**:
-- **Secure Authentication**: bcrypt password hashing with salt rounds
-- **Validation**: Email format validation, username uniqueness, password strength
-- **Profile Management**: References to up to 5 user profiles
-- **Admin System**: Boolean flag for administrative privileges
-- **Security Methods**: 
-  - `comparePassword()`: Secure password verification
-  - `toJSON()`: Removes password from API responses
-  - Pre-save middleware for automatic password hashing
+### 1. Clone the Repository
+```bash
+git clone https://github.com/shirabenben/Netfilx-Project.git
+cd Netfilx-Project
+```
 
-**Schema Fields**:
-- `username`: Unique identifier (3-50 characters)
-- `email`: Validated email address with uniqueness constraint
-- `password`: Hashed password (minimum 6 characters)
-- `firstName/lastName`: User's full name information
-- `isAdmin`: Administrative access flag
-- `profiles`: Array of profile references (1-5 profiles max)
+### 2. Install Dependencies
+```bash
+npm install
+```
 
-#### 📄 `Profile.js` - User Profile System
-**Purpose**: Enables multiple viewing profiles per user account (Netflix-style).
+### 3. Set Up Environment Variables
+Create a `.env` file in the root directory with the following variables:
 
-**Key Features**:
-- **Multi-Profile Support**: Each user can have multiple viewing profiles
-- **Unique Naming**: Profile names must be unique within user account
-- **Virtual Population**: Automatic loading of viewing habits and catalogs
-- **Relationship Management**: Links profiles to users, viewing habits, and catalogs
+```env
+# MongoDB Connection
+MONGODB_URI=mongodb://localhost:27017/netflix-clone
 
-**Schema Fields**:
-- `name`: Profile display name (unique per user)
-- `user`: Reference to parent user account
-- **Virtual Fields**: `viewingHabits`, `catalogs` (populated on demand)
+# Session Secret (use a strong random string)
+SESSION_SECRET=your-super-secret-session-key-change-this
 
-#### 📄 `Content.js` - Media Content Management
-**Purpose**: Stores all movies, series, and episode information with comprehensive metadata.
+# Server Port
+PORT=3000
 
-**Key Features**:
-- **Content Types**: Support for movies and series
-- **Rich Metadata**: Detailed information including cast, director, ratings
-- **Search Optimization**: Text indexes on title and description
-- **Performance Indexes**: Optimized queries by genre, type, and year
-- **Pagination Support**: Built-in pagination for large content libraries
-- **Content Validation**: Year validation, genre requirements, rating standards
+# OMDb API Key (get free key from http://www.omdbapi.com/apikey.aspx)
+OMDB_API_KEY=your-omdb-api-key
 
-**Schema Fields**:
-- `title`: Content title with character limits
-- `description`: Detailed synopsis (max 1000 characters)
-- `genre`: Array of genre classifications
-- `year`: Release year with realistic bounds
-- `duration`: Runtime in minutes
-- `rating`: Content rating (G, PG, PG-13, R, NC-17, TV ratings)
-- `type`: Movie or series classification
-- `director`: Director information
-- `cast`: Array of cast member names
-- `videoUrl`: Video file location
-- `imageUrl`: Thumbnail/poster image location
-- `isActive`: Content availability status
+# Content Fetch Limit
+CONTENT_FETCH_LIMIT=1000
+```
 
-#### 📄 `Catalog.js` - Personal Content Collections
-**Purpose**: Manages user-created content lists (watchlists, favorites, custom collections).
+### 4. Set Up MongoDB
+Make sure MongoDB is running on your system:
 
-**Key Features**:
-- **Collection Types**: Watchlist, favorites, and custom categories
-- **Profile-Specific**: Each catalog belongs to a specific profile
-- **Public/Private**: Catalogs can be shared publicly or kept private
-- **Duplicate Prevention**: Automatic removal of duplicate content
-- **Unique Naming**: Catalog names must be unique per profile
+**Windows:**
+```powershell
+# Start MongoDB service
+net start MongoDB
+```
 
-**Schema Fields**:
-- `name`: Catalog display name
-- `description`: Optional catalog description
-- `profile`: Reference to owning profile
-- `content`: Array of content references
-- `isPublic`: Public visibility flag
-- `type`: Category (watchlist, favorites, custom)
+**macOS/Linux:**
+```bash
+# Start MongoDB service
+sudo systemctl start mongod
+# or
+brew services start mongodb-community
+```
 
-#### 📄 `ViewingHabit.js` - Viewing Progress Tracking
-**Purpose**: Tracks user viewing progress, preferences, and engagement metrics.
+### 5. Seed the Database (Optional)
+You can manually add content through the admin interface or import sample data using MongoDB tools.
 
-**Key Features**:
-- **Progress Tracking**: Precise viewing position in seconds
-- **Like System**: User preference tracking
-- **Resume Functionality**: Continue watching from last position
-- **Unique Viewing Records**: One record per profile-content combination
-- **Analytics Support**: Data structure supports viewing analytics
+**Create Admin User:**
+```javascript
+// In MongoDB shell or Compass
+use netflix-clone
 
-**Schema Fields**:
-- `profile`: Reference to viewing profile
-- `content`: Reference to watched content
-- `watchProgress`: Current position in seconds
-- `liked`: User preference boolean
-- `lastWatched`: Timestamp of last viewing session
+// Create admin user
+db.users.insertOne({
+  username: "admin",
+  email: "admin@netflix.com",
+  password: "$2b$10$...", // Use bcrypt to hash "admin123"
+  firstName: "Admin",
+  lastName: "User",
+  isAdmin: true,
+  profiles: [],
+  createdAt: new Date(),
+  updatedAt: new Date()
+})
 
-#### 📄 `Log.js` - System Activity Logging
-**Purpose**: Comprehensive logging system for debugging, monitoring, and analytics.
+// Create admin profile
+db.profiles.insertOne({
+  name: "Admin",
+  user: ObjectId("..."), // Use the admin user's _id
+  watchProgress: {},
+  likedContent: [],
+  completedSeries: [],
+  watchedContent: [],
+  createdAt: new Date(),
+  updatedAt: new Date()
+})
 
-**Key Features**:
-- **Multiple Log Levels**: Info, error, and warning classifications
-- **Structured Logging**: Consistent message format with metadata
-- **Performance Optimization**: Indexed by timestamp and level
-- **Flexible Metadata**: Additional context storage in meta field
+// Update admin user with profile
+db.users.updateOne(
+  { username: "admin" },
+  { $push: { profiles: ObjectId("...") } } // Use the profile's _id
+)
+```
 
-**Schema Fields**:
-- `level`: Log severity (info, error, warn)
-- `message`: Human-readable log message
-- `timestamp`: Automatic timestamp generation
-- `meta`: Additional context data (objects, stack traces, etc.)
+---
 
-### 📁 Controllers (Business Logic)
+## 🎬 Running the Application
 
-#### 📄 `userController.js` - User Management Logic
-**Functionality**:
-- User registration with validation and password hashing
-- Secure authentication with session management
-- Profile creation and management (max 5 per user)
-- Password verification and user data retrieval
-- Admin privilege checking and user listing
+### Development Mode (with auto-restart)
+```bash
+npm run dev
+```
 
-#### 📄 `contentController.js` - Content Management
-**Functionality**:
-- Content CRUD operations with validation
-- Genre-based content filtering and search
-- Trending content calculation using aggregation
-- Pagination for large content libraries
-- Content status management (active/inactive)
+### Production Mode
+```bash
+npm start
+```
 
-#### 📄 `catalogController.js` - Catalog Operations
-**Functionality**:
-- Personal catalog creation and management
-- Content addition/removal from catalogs
-- Public catalog sharing and discovery
-- Profile-specific catalog filtering
-- Duplicate content prevention
+The application will be available at: **http://localhost:3000**
 
-#### 📄 `viewingHabitController.js` - Viewing Analytics
-**Functionality**:
-- Viewing progress tracking and updates
-- Continue watching functionality
-- Like/unlike content management
-- Viewing history and analytics
-- Resume point calculation with 10-second accuracy
+### Default Login Credentials
+After seeding the database:
+- **Username:** admin
+- **Password:** admin123 (or whatever you set)
 
-### 📁 Routes (API Endpoints)
+---
 
-#### 📄 `users.js` - User API Routes
-- `POST /api/users/register` - User registration
-- `POST /api/users/login` - User authentication
-- `GET /api/users/profile` - Get current user profile
-- `PUT /api/users/profile` - Update user information
-- `POST /api/users/profiles` - Create new profile
-- `DELETE /api/users/profiles/:id` - Delete profile
+## 🔐 Environment Variables
 
-#### 📄 `content.js` - Content API Routes
-- `GET /api/content` - List all content with pagination
-- `GET /api/content/search` - Search content by title/description
-- `GET /api/content/genre/:genre` - Filter content by genre
-- `GET /api/content/trending` - Get popular content
-- `POST /api/content` - Add new content (admin only)
-- `PUT /api/content/:id` - Update content (admin only)
-- `DELETE /api/content/:id` - Remove content (admin only)
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `MONGODB_URI` | MongoDB connection string | Yes | - |
+| `SESSION_SECRET` | Secret key for session encryption | Yes | - |
+| `PORT` | Server port number | No | 3000 |
+| `OMDB_API_KEY` | OMDb API key for content ratings | Yes | - |
+| `CONTENT_FETCH_LIMIT` | Max content items per query | No | 1000 |
 
-#### 📄 `catalogs.js` - Catalog API Routes
-- `GET /api/catalogs/profile/:profileId` - Get profile catalogs
-- `POST /api/catalogs` - Create new catalog
-- `PUT /api/catalogs/:id` - Update catalog
-- `DELETE /api/catalogs/:id` - Delete catalog
-- `POST /api/catalogs/:id/content` - Add content to catalog
-- `DELETE /api/catalogs/:id/content/:contentId` - Remove content
+---
 
-#### 📄 `viewingHabits.js` - Viewing Tracking Routes
-- `GET /api/viewing-habits/profile/:profileId` - Get viewing history
-- `POST /api/viewing-habits` - Update viewing progress
-- `PUT /api/viewing-habits/:contentId/like` - Like/unlike content
-- `GET /api/viewing-habits/continue-watching` - Get continue watching list
+## 🗄 Database Models
 
-### 📁 Middleware & Utils
+### User Model
+- **Fields:** username, email, password (encrypted), firstName, lastName, isAdmin, profiles[]
+- **Relationships:** One-to-Many with Profiles
+- **Validations:** Unique username/email, password min length, max 5 profiles
 
-#### 📄 `auth.js` - Authentication Middleware
-**Functionality**:
-- Session validation and user authentication
-- Protected route access control
-- Admin privilege verification
-- Profile ownership validation
+### Profile Model
+- **Fields:** name, user, watchProgress (Map), likedContent[], completedSeries[], watchedContent[]
+- **Relationships:** Many-to-One with User, Many-to-Many with Content
+- **Features:** Track watch position, liked content, viewing history
 
-#### 📄 `logger.js` - Logging Middleware
-**Functionality**:
-- HTTP request logging
-- Error tracking and database logging
-- Performance monitoring
-- Debug information collection
+### Content Model
+- **Fields:** title, description, type (movie/series/episode), genre[], year, duration, rating, imageUrl, videoUrl, popularity, starRating, seriesId, episodeNumber
+- **Types:** movie, series, episode
+- **Validations:** Required fields, valid content type
+
+### ViewingHabit Model
+- **Fields:** user, profile, content, watchCount, lastWatched, liked, watchProgress
+- **Purpose:** Track user engagement and preferences
+
+### Catalog Model
+- **Fields:** profile, name, contentList[]
+- **Purpose:** User-created content collections
+
+### Log Model
+- **Fields:** timestamp, level, message, metadata, errorStack
+- **Purpose:** System monitoring and debugging
+
+---
 
 ## 🔌 API Endpoints
 
-### User Management API (`/api/users`)
-- `GET /` - Retrieve all users (admin only)
-- `GET /:id` - Get specific user by ID
-- `POST /register` - Create new user account with validation
-- `POST /login` - Authenticate user and create session
-- `PUT /:id` - Update user information
-- `DELETE /:id` - Delete user account
-- `POST /:id/profiles` - Create new profile for user
-- `GET /:id/profiles` - Get all profiles for user
+### Authentication
+- `POST /api/users/register` - Register new user
+- `POST /api/users/login` - Login user
+- `GET /api/users/logout` - Logout user
 
-### Content Management API (`/api/content`)
-- `GET /` - List all content with pagination and filtering
-- `GET /search?q=query` - Full-text search across content
-- `GET /trending` - Get popular content using aggregation
-- `GET /genre/:genre` - Filter content by specific genre
-- `GET /:id` - Get detailed content information
-- `POST /` - Add new content (admin only)
-- `PUT /:id` - Update existing content (admin only)
-- `DELETE /:id` - Remove content from platform (admin only)
+### Users
+- `GET /api/users` - Get all users (admin only)
+- `GET /api/users/:id` - Get user by ID
+- `PUT /api/users/:id` - Update user
+- `DELETE /api/users/:id` - Delete user
 
-### Catalog Management API (`/api/catalogs`)
-- `GET /public` - Get all publicly shared catalogs
-- `GET /profile/:profileId` - Get all catalogs for specific profile
-- `GET /:id` - Get specific catalog with content details
-- `POST /` - Create new personal catalog
-- `PUT /:id` - Update catalog information
-- `DELETE /:id` - Delete catalog
-- `POST /:id/content` - Add content to catalog
-- `DELETE /:id/content/:contentId` - Remove content from catalog
+### Profiles
+- `GET /profiles` - Get user profiles (page)
+- `GET /api/users/profiles` - Get profiles (JSON)
+- `POST /api/users/profiles` - Create new profile
+- `PUT /api/users/profiles/:id` - Update profile
+- `DELETE /api/users/profiles/:id` - Delete profile
 
-### Viewing Habits API (`/api/viewing-habits`)
-- `GET /profile/:profileId` - Get viewing history for profile
-- `POST /` - Create or update viewing progress
-- `GET /:contentId` - Get viewing progress for specific content
-- `PUT /:contentId/like` - Toggle like status for content
-- `DELETE /:contentId` - Remove viewing record
-- `GET /continue-watching` - Get continue watching list
+### Content
+- `GET /api/content` - Get all content (with filters & pagination)
+- `GET /api/content/:id` - Get content by ID
+- `POST /api/content` - Create content (admin only)
+- `PUT /api/content/:id` - Update content (admin only)
+- `DELETE /api/content/:id` - Delete content (admin only)
+- `GET /api/content/trending` - Get trending content
+- `GET /api/content/popular` - Get most popular content
+- `GET /api/content/newest/movies` - Get newest movies
+- `GET /api/content/newest/series` - Get newest series
+- `GET /api/content/continue-watching` - Get continue watching list
+- `POST /api/content/mark-watched` - Mark content as watched
 
-## 🎨 Frontend Components
+### Player
+- `GET /player/:contentId/:profileId` - Get player page
+- `POST /player/reset/:contentId/:profileId` - Reset watch progress
 
-### 📄 Public Directory Files
+### Watch Progress
+- `GET /watch-progress/:profileId/:contentId` - Get watch position
+- `POST /watch-progress` - Save watch position
 
-#### `login.html` & `login.js`
-- **Purpose**: User authentication interface
-- **Features**: Form validation, error handling, session management
-- **Security**: Client-side validation with server-side verification
+### Viewing Habits
+- `GET /api/viewing-habits/:profileId` - Get viewing habits
+- `POST /api/viewing-habits` - Track viewing habit
 
-#### `register.html` & `register.js`
-- **Purpose**: New user account creation
-- **Features**: Password strength validation, email verification, duplicate checking
-- **UX**: Progressive enhancement with real-time validation feedback
+### Statistics
+- `GET /api/users/statistics` - Get user statistics
 
-#### `app.js`
-- **Purpose**: Main client-side application logic
-- **Features**: AJAX API calls, DOM manipulation, responsive interactions
-- **Architecture**: Modular JavaScript with separation of concerns
+### Search
+- `GET /search?q=query` - Search content by title
 
-#### `styles.css`
-- **Purpose**: Global styling and responsive design
-- **Features**: Mobile-first approach, CSS Grid/Flexbox layouts, custom animations
-- **Compatibility**: Cross-browser support with fallbacks
+---
 
-### 📄 Server-Side Templates (EJS Views)
+## 👥 User Roles
 
-#### `homepage.ejs`
-- **Purpose**: Main dashboard after login
-- **Features**: Content carousels, continue watching, personalized recommendations
-- **Components**: Uses partials for modular rendering
+### Regular User
+- Register and login
+- Create up to 5 profiles
+- Browse and search content
+- Watch movies and series
+- Track watch progress
+- Like/unlike content
+- View personal statistics
+- Manage profiles and settings
 
-#### `profile.ejs`
-- **Purpose**: Profile management and settings
-- **Features**: Profile switching, viewing statistics, account settings
-- **Analytics**: Dynamic charts using Chart.js (if implemented)
+### Admin User
+- All regular user capabilities
+- Access "Add Content" page
+- Upload new movies/series
+- Fetch content ratings from OMDb API
+- Manage all content (CRUD operations)
 
-#### `error.ejs`
-- **Purpose**: Centralized error handling display
-- **Features**: User-friendly error messages, navigation options
-- **Security**: No sensitive information exposure
+---
 
-#### `partials/_Navbar.ejs`
-- **Purpose**: Reusable navigation component
-- **Features**: Profile switching, search functionality, responsive menu
-- **State Management**: Session-aware navigation options
+## 🎯 Key Features Explained
 
-#### `partials/_ContentSlider.ejs`
-- **Purpose**: Content carousel component
-- **Features**: Infinite scroll, lazy loading, responsive grid
-- **Performance**: Optimized for large content libraries
+### Continue Watching
+- Automatically tracks playback position every 5 seconds
+- Stores position per profile in `watchProgress` Map
+- Filters out completed content and episodes
+- Displays up to 10 most recent items
 
-## 🚀 Development Workflow
+### Profile System
+- Each user can have multiple profiles (family members)
+- Separate viewing history, preferences, and progress per profile
+- Profile switching without re-authentication
 
-### Running the Application
+### Video Player
+- HTML5 video element with custom controls
+- Keyboard shortcuts (Space, Arrow keys, F for fullscreen)
+- Timeline scrubbing with visual progress bar
+- Auto-save watch position
+- Episode navigation for series
 
-1. **Development Mode** (auto-restart on changes):
-   ```powershell
-   npm run dev
-   ```
+### Content Recommendations
+- Similar content based on genre matching
+- Popular content using MongoDB aggregation
+- Newest content dynamically grouped by genre
+- Personalized based on viewing history
 
-2. **Production Mode**:
-   ```powershell
-   npm start
-   ```
+### Statistics Dashboard
+- Interactive charts using Chart.js
+- Daily views per profile (bar chart)
+- Genre popularity distribution (pie chart)
+- Viewing time tracking
+- Profile comparison
 
-3. **Testing** (when implemented):
-   ```powershell
-   npm test
-   ```
+### Search Functionality
+- Real-time search by content title
+- Case-insensitive matching
+- Excludes episodes from results
+- Results displayed in carousel format
 
-### Database Seeding
-The application requires demo data for presentation. Create seed scripts to populate:
-- Sample users (including admin)
-- Diverse content library (movies/series)
-- Example catalogs and viewing habits
+### External API Integration
+- OMDb API for fetching content ratings
+- Automatic rating lookup when adding content
+- IMDb ratings and Rotten Tomatoes scores
 
-### Environment Variables
-```env
-PORT=3000
-MONGODB_URI=mongodb+srv://netflix_team:Aa12345678@cluster0.e3eeaic.mongodb.net/Netflix?retryWrites=true&w=majority&appName=Cluster0
-SESSION_SECRET=your-session-secret-here
-NODE_ENV=development
+### Security Features
+- Password hashing with bcrypt (10 rounds)
+- Session-based authentication
+- Protected routes with middleware
+- Role-based access control (admin vs user)
+- CSRF protection via session
+
+### Responsive Design
+- Bootstrap 5 grid system
+- Mobile-first approach
+- Works on desktop, tablet, and mobile
+- Touch-friendly controls
+
+---
+
+## 🐛 Troubleshooting
+
+### MongoDB Connection Issues
+```bash
+# Check if MongoDB is running
+# Windows
+net start MongoDB
+
+# macOS/Linux
+sudo systemctl status mongod
 ```
 
-## 🔒 Security Implementation
+### Port Already in Use
+```bash
+# Change PORT in .env file or kill process
+# Windows
+netstat -ano | findstr :3000
+taskkill /PID <PID> /F
 
-### Authentication & Authorization
-- **Password Security**: bcrypt with 10 salt rounds
-- **Session Management**: express-session with MongoDB store
-- **Access Control**: Middleware-based route protection
-- **Admin Protection**: Role-based access for content management
+# macOS/Linux
+lsof -ti:3000 | xargs kill -9
+```
 
-### Data Validation
-- **Client-Side**: JavaScript form validation with real-time feedback
-- **Server-Side**: Mongoose schema validation with custom validators
-- **Input Sanitization**: Protection against injection attacks
-- **Error Handling**: Graceful error responses without information leakage
+### Session Issues
+- Clear browser cookies and cache
+- Check `SESSION_SECRET` is set in .env
+- Verify MongoDB session store connection
 
-### Privacy Protection
-- **Profile Isolation**: Users can only access their own profiles and data
-- **Session Security**: Secure session configuration with appropriate timeouts
-- **Data Filtering**: Sensitive information removed from API responses
+---
 
-## 📊 Performance Optimizations
+## 📝 Development Notes
 
-### Database Optimization
-- **Indexing**: Strategic indexes on frequently queried fields
-- **Pagination**: Efficient content browsing with mongoose-paginate-v2
-- **Aggregation**: Complex queries for trending content and analytics
-- **Connection Pooling**: Optimized MongoDB connection management
-
-### Frontend Performance
-- **Lazy Loading**: Content images loaded on demand
-- **Caching**: Browser caching for static assets
-- **Minification**: Compressed CSS and JavaScript files
-- **Responsive Images**: Optimized images for different screen sizes
-
-## 🧪 Testing Strategy
-
-### Unit Tests (`tests/unit/`)
-- Model validation testing
-- Controller logic verification
-- Utility function testing
-- Authentication middleware testing
-
-### Integration Tests (`tests/integration/`)
-- API endpoint testing
-- Database integration testing
-- Authentication flow testing
-- Complete user journey testing
-
-## 🚀 Deployment Considerations
-
-### Production Checklist
-- [ ] Environment variables configured
-- [ ] Database seeded with demo data
-- [ ] Security headers implemented
-- [ ] Error logging configured
-- [ ] Performance monitoring enabled
-- [ ] Backup strategy implemented
-
-### Scaling Recommendations
-- **Database**: Consider MongoDB Atlas for production
-- **Session Storage**: Redis for high-traffic scenarios
-- **File Storage**: Cloud storage for video/image files
-- **CDN**: Content delivery network for media files
-
-## 🔍 Troubleshooting
-
-### Common Issues
-1. **MongoDB Connection**: Check connection string and network access
-2. **Session Issues**: Verify session configuration and MongoDB store
-3. **Authentication Problems**: Check bcrypt implementation and password hashing
-4. **CORS Issues**: Ensure proper middleware configuration for API access
-
-### Debug Mode
-Enable detailed logging by setting `NODE_ENV=development` and checking console output for detailed error information.
-
-## 👥 Team Collaboration
+### MVC Architecture
+The project follows the Model-View-Controller pattern:
+- **Models** (`server/models/`) - Database schemas and data logic
+- **Views** (`views/`) - EJS templates for rendering
+- **Controllers** (`server/controllers/`) - Business logic and request handling
 
 ### Code Standards
-- **ES6+ JavaScript**: Modern JavaScript features and syntax
-- **Consistent Naming**: camelCase for variables, PascalCase for models
-- **Comment Standards**: JSDoc-style comments for functions and complex logic
-- **Error Handling**: Consistent error response format across all endpoints
+- Use ES6+ syntax
+- Async/await for asynchronous operations
+- Error handling with try-catch blocks
+- Input validation on both client and server
+- Consistent naming conventions
 
 ### Git Workflow
-- **Feature Branches**: Separate branches for each feature implementation
-- **Commit Messages**: Descriptive commits with clear purpose
-- **Code Reviews**: Peer review process for all changes
-- **Documentation**: README updates with each significant change
+```bash
+# Create feature branch
+git checkout -b feature/feature-name
 
-## 📈 Future Enhancements
+# Make changes and commit
+git add .
+git commit -m "Description of changes"
 
-### Planned Features
-- **Video Streaming**: Integration with video streaming services
-- **Real-time Notifications**: User activity notifications
-- **Advanced Analytics**: Detailed viewing behavior analysis
-- **Social Features**: User ratings and reviews
-- **Mobile App**: React Native or Flutter mobile application
-
-### Technical Improvements
-- **Microservices**: Service decomposition for better scalability
-- **GraphQL API**: More efficient data fetching
-- **WebSocket Integration**: Real-time features implementation
-- **Containerization**: Docker deployment configuration
+# Push to remote
+git push origin feature/feature-name
+```
 
 ---
 
-## 📞 Support & Contact
+## 📄 License
 
-For technical issues or questions about this project:
-1. Check the troubleshooting section above
-2. Review the project requirements document
-3. Contact the development team through the repository issues
-
-**Repository**: [https://github.com/shirabenben/Netfilx-Project](https://github.com/shirabenben/Netfilx-Project)
+This project is licensed under the ISC License.
 
 ---
 
-*This documentation is maintained by the development team and updated with each major release.*
+## 👨‍💻 Authors
+
+Developed as a final project for Web Application Development Course.
+
+---
+
+## 🙏 Acknowledgments
+
+- Course instructors and teaching assistants
+- OMDb API for content ratings
+- Bootstrap for UI components
+- MongoDB and Mongoose documentation
+
+---
+
+## 📧 Support
+
+For issues, questions, or contributions, please open an issue on the [GitHub repository](https://github.com/shirabenben/Netfilx-Project/issues).
