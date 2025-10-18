@@ -11,7 +11,6 @@ const {
   updateUser,
   deleteUser,
   getUserStatistics,
-  migrateViewingHistory,
   getWatchedContent,
   getUnwatchedContent,
   cleanupOrphanedProfiles
@@ -98,60 +97,8 @@ router.get('/statistics-page', requireAuth, async (req, res) => {
 // GET /api/users/statistics - Get user statistics data (protected)
 router.get('/statistics', requireAuth, getUserStatistics);
 
-// POST /api/users/migrate-viewing-history - Migrate existing viewing habits to watchedContent (protected)
-router.post('/migrate-viewing-history', requireAuth, migrateViewingHistory);
-
 // POST /api/users/cleanup-profiles - Clean up orphaned profile references (protected)
 router.post('/cleanup-profiles', requireAuth, cleanupOrphanedProfiles);
-
-// GET /api/users/check-migration - Check if migration is needed (protected)
-router.get('/check-migration', requireAuth, async (req, res) => {
-  try {
-    const User = require('../models/User');
-    const ViewingHabit = require('../models/ViewingHabit');
-    const Profile = require('../models/Profile');
-    
-    const user = await User.findById(req.user._id).populate('profiles');
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-    
-    let totalViewingHabits = 0;
-    let totalWatchedContent = 0;
-    const profileDetails = [];
-    
-    for (const profile of user.profiles) {
-      const habits = await ViewingHabit.find({ profile: profile._id });
-      
-      // Get the actual profile with watched content
-      const fullProfile = await Profile.findById(profile._id);
-      const watchedCount = fullProfile?.watchedContent?.length || 0;
-      
-      totalViewingHabits += habits.length;
-      totalWatchedContent += watchedCount;
-      
-      profileDetails.push({
-        name: profile.name,
-        viewingHabits: habits.length,
-        watchedContent: watchedCount,
-        sampleDates: fullProfile?.watchedContent?.slice(0, 3).map(w => w.watchedAt) || []
-      });
-    }
-    
-    res.json({
-      success: true,
-      needsMigration: totalViewingHabits > totalWatchedContent,
-      data: {
-        profiles: user.profiles.length,
-        viewingHabits: totalViewingHabits,
-        watchedContent: totalWatchedContent,
-        profileDetails: profileDetails
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
 
 // POST /api/users/profiles - Create new profile (protected)
 router.post('/profiles', requireAuth, createProfile);

@@ -138,3 +138,31 @@ document.addEventListener('keydown', (e) => {
       break;
   }
 });
+
+
+// --------------------- TRACK WATCH ACTIVITY ---------------------
+
+async function trackWatch(profileId, contentId) {
+  try {
+    if (!profileId || !contentId) return;
+    
+    const response = await fetch('/watch-progress/track-watch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profileId, contentId })
+    });
+
+    if (response.ok) {
+      console.log(`✅ Watch tracked for content ${contentId}`);
+    } else {
+      console.warn('⚠️ Failed to track watch');
+    }
+  } catch (error) {
+    console.error('Error tracking watch activity:', error);
+  }
+}
+
+// Call the function when the video starts playing
+video.addEventListener('play', () => {
+  trackWatch(profileId, contentId);
+});

@@ -34,10 +34,12 @@ const profileSchema = new mongoose.Schema({
     ref: 'Content',
         default: []
   },
-  watchedContent: {
-    type: [viewingHistorySchema],
-    default: []
+watchedContent: [
+  {
+    contentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Content' },
+    watchedAt: [{ type: Date, default: Date.now }]
   }
+]
 
 }, {
   timestamps: true,

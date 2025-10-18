@@ -564,15 +564,16 @@ const getUserStatistics = async (req, res) => {
 
     // Calculate date range
     const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999); // End of today
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+    startDate.setDate(startDate.getDate() - days + 1); // Include today in the count
+    startDate.setHours(0, 0, 0, 0); // Start of the day
 
     // Get all viewing history from all profiles within date range
     const allViewingHistory = [];
     let totalWatchedContent = 0;
     user.profiles.forEach(profile => {
       if (profile.watchedContent && profile.watchedContent.length > 0) {
-        totalWatchedContent += profile.watchedContent.length;
         profile.watchedContent.forEach(watch => {
           // Check if content is populated
           if (!watch.contentId) {
@@ -580,49 +581,26 @@ const getUserStatistics = async (req, res) => {
             return;
           }
           
-          if (watch.watchedAt >= startDate && watch.watchedAt <= endDate) {
-            allViewingHistory.push({
-              profile: profile,
-              content: watch.contentId,
-              watchedAt: watch.watchedAt,
-              duration: watch.duration
-            });
-          }
+          // watchedAt is an array of dates, so we need to process each date
+          const watchDates = Array.isArray(watch.watchedAt) ? watch.watchedAt : [watch.watchedAt];
+          
+          watchDates.forEach(watchDate => {
+            totalWatchedContent++;
+            const dateObj = watchDate instanceof Date ? watchDate : new Date(watchDate);
+            
+            if (dateObj >= startDate && dateObj <= endDate) {
+              allViewingHistory.push({
+                profile: profile,
+                content: watch.contentId,
+                watchedAt: dateObj,
+                duration: 0 // Duration not tracked in current schema
+              });
+            }
+          });
         });
       }
     });
     
-    console.log(`Statistics Debug:
-      - Total profiles: ${user.profiles.length}
-      - Total watched content entries: ${totalWatchedContent}
-      - Viewing history in date range: ${allViewingHistory.length}
-      - Date range: ${startDate.toISOString()} to ${endDate.toISOString()}
-      - Sample content item:`, allViewingHistory[0]?.content ? {
-        id: allViewingHistory[0].content._id,
-        title: allViewingHistory[0].content.title,
-        type: allViewingHistory[0].content.type,
-        genre: allViewingHistory[0].content.genre
-      } : 'No items');
-
-    // If no viewing history in date range but we have watched content, show warning
-    if (allViewingHistory.length === 0 && totalWatchedContent > 0) {
-      console.warn(`Warning: ${totalWatchedContent} watched items exist but none in the ${days}-day range`);
-      console.log('Date range check:', {
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString()
-      });
-      
-      // Check dates of watched content
-      user.profiles.forEach(profile => {
-        console.log(`Profile: ${profile.name}`);
-        profile.watchedContent.forEach((watch, idx) => {
-          const watchDate = watch.watchedAt;
-          const inRange = watchDate >= startDate && watchDate <= endDate;
-          console.log(`  Item ${idx + 1}: watchedAt=${watchDate instanceof Date ? watchDate.toISOString() : watchDate}, inRange=${inRange}`);
-        });
-      });
-    }
-
     // Get viewing habits for liked content count
     const profileIds = user.profiles.map(p => p._id);
     const viewingHabits = await ViewingHabit.find({
@@ -633,8 +611,6 @@ const getUserStatistics = async (req, res) => {
     const stats = {
       totalViews: allViewingHistory.length,
       uniqueContent: new Set(allViewingHistory.map(vh => vh.content?._id.toString()).filter(Boolean)).size,
-      totalHours: allViewingHistory.reduce((sum, vh) => sum + ((vh.duration || 0) / 3600), 0),
-      likedContent: viewingHabits.filter(vh => vh.liked).length,
       dailyViews: [],
       profiles: user.profiles.map(p => ({ id: p._id.toString(), name: p.name })),
       profileStats: [],
@@ -643,9 +619,10 @@ const getUserStatistics = async (req, res) => {
 
     // Generate daily views data
     const dailyViewsMap = new Map();
+    const mapStartDate = new Date(startDate);
     for (let i = 0; i < days; i++) {
-      const date = new Date(startDate);
-      date.setDate(date.getDate() + i);
+      const date = new Date(mapStartDate);
+      date.setDate(mapStartDate.getDate() + i);
       const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       dailyViewsMap.set(dateStr, {
         date: dateStr,
@@ -670,12 +647,9 @@ const getUserStatistics = async (req, res) => {
     // Calculate profile stats
     stats.profileStats = user.profiles.map(profile => {
       const profileViews = allViewingHistory.filter(vh => vh.profile._id.toString() === profile._id.toString());
-      const profileHabits = viewingHabits.filter(vh => vh.profile.toString() === profile._id.toString());
       return {
         name: profile.name,
-        views: profileViews.length,
-        hours: profileViews.reduce((sum, vh) => sum + ((vh.duration || 0) / 3600), 0),
-        favorites: profileHabits.filter(vh => vh.liked).length
+        views: profileViews.length
       };
     });
 
@@ -703,7 +677,7 @@ const getUserStatistics = async (req, res) => {
       }
     });
 
-    console.log(`Genre Debug: Content with views: ${contentViewCounts.size}`);
+
 
     // Get all content items with their genres
     const allContent = await Content.find({ isActive: true });
@@ -733,7 +707,7 @@ const getUserStatistics = async (req, res) => {
       }
     });
 
-    console.log(`Genre Debug: Genres found: ${contentByGenre.size}, Genre names: ${Array.from(contentByGenre.keys()).join(', ')}`);
+
 
     // Convert to array format and sort
     stats.contentByGenre = Array.from(contentByGenre.entries())
@@ -767,80 +741,6 @@ const getUserStatistics = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching statistics',
-      error: error.message
-    });
-  }
-};
-
-// Migrate existing viewing habits to profile watchedContent
-const migrateViewingHistory = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    
-    // Get user's profiles
-    const user = await User.findById(userId).populate('profiles');
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'User not found'
-      });
-    }
-
-    let totalMigrated = 0;
-    const migrationDetails = [];
-    
-    // For each profile, get viewing habits and add to watchedContent
-    for (const profile of user.profiles) {
-      // Get all viewing habits for this profile
-      const viewingHabits = await ViewingHabit.find({ profile: profile._id }).populate('content');
-      
-      console.log(`Profile ${profile.name}: Found ${viewingHabits.length} viewing habits`);
-      
-      // Clear existing watchedContent to avoid duplicates
-      profile.watchedContent = [];
-      
-      // Add each viewing habit to watchedContent
-      viewingHabits.forEach(vh => {
-        if (vh.content && vh.content._id) {
-          // Use the original date, but ensure it's a Date object
-          let watchedDate = vh.lastWatched || vh.updatedAt || new Date();
-          
-          // If the date is a string, convert to Date
-          if (typeof watchedDate === 'string') {
-            watchedDate = new Date(watchedDate);
-          }
-          
-          profile.watchedContent.push({
-            contentId: vh.content._id,
-            watchedAt: watchedDate,
-            duration: vh.watchProgress || 0
-          });
-          totalMigrated++;
-        }
-      });
-      
-      await profile.save();
-      
-      migrationDetails.push({
-        profileName: profile.name,
-        migratedCount: viewingHabits.length
-      });
-    }
-
-    console.log(`Migration complete: ${totalMigrated} total records migrated across ${user.profiles.length} profiles`);
-
-    res.json({
-      success: true,
-      message: `Successfully migrated ${totalMigrated} viewing records`,
-      profilesUpdated: user.profiles.length,
-      details: migrationDetails
-    });
-
-  } catch (error) {
-    console.error('Error migrating viewing history:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error migrating viewing history',
       error: error.message
     });
   }
@@ -906,6 +806,5 @@ module.exports = {
   getWatchedContent,
   getUnwatchedContent,
   getUserStatistics,
-  migrateViewingHistory,
   cleanupOrphanedProfiles
 };
