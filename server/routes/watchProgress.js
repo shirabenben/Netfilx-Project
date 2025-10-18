@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Profile = require('../models/Profile');
+const { trackWatch } = require('../controllers/watchProgressController');
+
 
 /**
  * Route to update watch progress for a specific content and profile
@@ -157,5 +159,6 @@ router.post('/reset-series', async (req, res) => {
     res.status(500).json({ message: 'Internal server error.' });
   }
 });
+router.post('/track-watch', trackWatch);
 
 module.exports = router;
