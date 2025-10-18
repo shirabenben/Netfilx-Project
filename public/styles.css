@@ -242,6 +242,10 @@ section h2 {
     width: 100%;
     margin-top: 20px;
     transition: background 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .btn-register:hover {
@@ -802,6 +806,26 @@ body.content-page .timeline-watched {
 .loading-spinner {
     text-align: center;
     padding: 60px;
+}
+
+/* Loading spinner inside buttons */
+.btn .loading-spinner {
+    padding: 0;
+    display: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+.btn.loading .loading-spinner {
+    display: inline-block;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
 
 .no-data-message {
