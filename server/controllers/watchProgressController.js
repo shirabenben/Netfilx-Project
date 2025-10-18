@@ -1,4 +1,5 @@
 const Profile = require('../models/Profile');
+const Content = require('../models/Content'); // נצטרך לבדוק אם התוכן הוא סדרה
 
 module.exports = {
   // Add new watch time
@@ -13,9 +14,16 @@ module.exports = {
       const profile = await Profile.findById(profileId);
       if (!profile) return res.status(404).json({ message: 'Profile not found.' });
 
-      // Check if the content already exists
+      // נבדוק אם התוכן הוא חלק מסדרה
+      const content = await Content.findById(contentId).select('seriesId');
+      if (!content) return res.status(404).json({ message: 'Content not found.' });
+
+      // אם יש seriesId נשתמש בו במקום contentId
+      const targetId = content.seriesId ? content.seriesId.toString() : contentId;
+
+      // נבדוק אם כבר יש את התוכן הזה ברשימת הצפייה
       const existing = profile.watchedContent.find(
-        item => item.contentId.toString() === contentId
+        item => item.contentId.toString() === targetId
       );
 
       if (existing) {
@@ -23,7 +31,7 @@ module.exports = {
         existing.watchedAt.push(new Date());
       } else {
         profile.watchedContent.push({
-          contentId,
+          contentId: targetId,
           watchedAt: [new Date()]
         });
       }
