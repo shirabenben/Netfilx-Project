@@ -20,6 +20,16 @@
     
     <!-- Main Content Container -->
     <div class="container-fluid mt-4">
+        <!-- Continue Watching Section -->
+        <%- include('partials/_ContentSlider', {
+            title: 'Continue Watching',
+            icon: '▶️',
+            containerId: 'continue-watching',
+            sliderId: 'continue-slider',
+            leftBtnId: 'continue-left-btn',
+            rightBtnId: 'continue-right-btn'
+        }) %>
+
         <!-- Most Popular Content Section -->
         <%- include('partials/_ContentSlider', {
             title: 'Most Popular',

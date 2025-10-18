@@ -45,6 +45,9 @@ function storeProfileId() {
 // Initialize homepage
 function initializeHomepage() {
     storeProfileId();
+    if (document.getElementById('continue-watching')) {
+        loadContent('continue-watching', 'continue-watching', 'continue-slider', 'continue-left-btn', 'continue-right-btn');
+    }
     if (document.getElementById('popular-content')) {
         loadContent('popular', 'popular-content', 'popular-slider', 'popular-left-btn', 'popular-right-btn', true);
     }
