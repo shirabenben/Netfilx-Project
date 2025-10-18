@@ -7,33 +7,33 @@ module.exports = {
     try {
       const { contentId, profileId } = req.params;
 
-      // שליפת פרטי התוכן
+      // Retrieve content details
       const content = await Content.findById(contentId);
       if (!content) return res.status(404).send('Content not found');
 
-      // שליפת הפרופיל (כדי לבדוק אהבתי והתקדמות צפייה)
+      // Retrieve profile (to check likes and watch progress)
       const profile = await Profile.findById(profileId);
       if (!profile) return res.status(404).send('Profile not found');
 
-      // שליפת הזמן האחרון שנצפה
+      // Retrieve last watched position
       const lastPosition = profile.watchProgress.get(contentId) || 0;
 
-      // בדיקה אם המשתמש סימן "אהבתי"
+      // Check if user liked the content
       const isLiked = (profile.likedContent || []).includes(contentId);
 
-      // מציאת תכנים דומים לפי ז׳אנר
+      // Find similar content by genre
       const similarContent = await Content.find({
         genre: { $in: content.genre },
         _id: { $ne: content._id },
       }).limit(5);
 
-      // במקרה של סדרה – שליפת כל הפרקים
+      // In case of a series – retrieve all episodes
       let episodes = [];
       if (content.type === 'series') {
         episodes = await Content.find({ seriesId: content._id }).sort({ episodeNumber: 1 });
       }
 
-      // רינדור העמוד player.ejs
+      // Render the player.ejs page
       res.render('player', {
         content,
         profile,

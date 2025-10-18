@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const playerController = require('../controllers/playerController');
 
-// טוען את עמוד הנגן
+// Loads the player page
 router.get('/:contentId/:profileId', playerController.getPlayerPage);
 
-// איפוס צפייה
+// Resets watch progress
 router.post('/reset/:contentId/:profileId', playerController.resetProgress);
 
 module.exports = router;
