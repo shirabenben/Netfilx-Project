@@ -6,9 +6,6 @@ let genrePopularityChart = null;
 let currentDays = 7;
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if migration is needed first
-    checkMigrationStatus();
-    
     loadStatistics(currentDays);
 
     // Date range selector
@@ -20,46 +17,6 @@ document.addEventListener('DOMContentLoaded', function() {
             loadStatistics(currentDays);
         });
     });
-
-    // Migration button
-    const migrateBtn = document.getElementById('migrate-btn');
-    if (migrateBtn) {
-        migrateBtn.addEventListener('click', async function() {
-            if (!confirm('This will migrate your existing viewing history to enable statistics. Continue?')) {
-                return;
-            }
-
-            this.disabled = true;
-            this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Migrating...';
-
-            try {
-                const response = await fetch('/api/users/migrate-viewing-history', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    showAlert('success', data.message || 'Migration completed successfully!');
-                    // Reload statistics after migration
-                    setTimeout(() => location.reload(), 2000);
-                } else {
-                    showAlert('danger', data.message || 'Migration failed');
-                    this.disabled = false;
-                    this.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Migrate Viewing History';
-                }
-            } catch (error) {
-                console.error('Migration error:', error);
-                showAlert('danger', 'An error occurred during migration');
-                this.disabled = false;
-                this.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Migrate Viewing History';
-            }
-        });
-    }
-
 });
 
 async function loadStatistics(days) {
@@ -110,8 +67,6 @@ function displayStatistics(stats) {
     // Update overview cards
     document.getElementById('total-views').textContent = stats.totalViews;
     document.getElementById('unique-content').textContent = stats.uniqueContent;
-    document.getElementById('total-hours').textContent = stats.totalHours.toFixed(1);
-    document.getElementById('liked-content').textContent = stats.likedContent;
 
     console.log('Creating charts...');
 
@@ -426,14 +381,6 @@ function displayProfileStats(profileStats) {
                     <div class="profile-stat-value">${profile.views}</div>
                     <div class="profile-stat-label">Views</div>
                 </div>
-                <div class="profile-stat-item">
-                    <div class="profile-stat-value">${profile.hours.toFixed(1)}</div>
-                    <div class="profile-stat-label">Hours</div>
-                </div>
-                <div class="profile-stat-item">
-                    <div class="profile-stat-value">${profile.favorites}</div>
-                    <div class="profile-stat-label">Favorites</div>
-                </div>
             </div>
         `;
         container.appendChild(statCard);
@@ -478,27 +425,5 @@ function showAlert(type, message) {
         alertDiv.classList.remove('show');
         setTimeout(() => alertDiv.remove(), 150);
     }, 5000);
-}
-
-async function checkMigrationStatus() {
-    try {
-        const response = await fetch('/api/users/check-migration');
-        const data = await response.json();
-        
-        if (data.success) {
-            console.log('Migration Status:', data.data);
-            
-            if (data.needsMigration && data.data.viewingHabits > 0) {
-                showAlert('info', 
-                    `You have ${data.data.viewingHabits} viewing records that can be migrated. ` +
-                    `Click "Migrate Viewing History" to see your statistics.`
-                );
-            } else if (data.data.watchedContent === 0 && data.data.viewingHabits === 0) {
-                console.log('No viewing history found');
-            }
-        }
-    } catch (error) {
-        console.error('Error checking migration status:', error);
-    }
 }
 
