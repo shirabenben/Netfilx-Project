@@ -264,7 +264,8 @@ const createProfile = async (req, res) => {
     }
 
     // Check if user already has 5 profiles (max limit)
-    const user = await User.findById(userId);
+    // IMPORTANT: Must populate to check which profiles actually exist
+    const user = await User.findById(userId).populate('profiles');
     
     if (!user) {
       return res.status(404).json({
@@ -273,9 +274,22 @@ const createProfile = async (req, res) => {
       });
     }
 
-    console.log('User has', user.profiles.length, 'profiles');
+    // Filter out null/undefined (deleted profiles that still have references)
+    const actualProfiles = user.profiles.filter(p => p != null);
+    
+    console.log(`Profile check for user ${userId}:`);
+    console.log(`  - Array has ${user.profiles.length} references`);
+    console.log(`  - Actually exist: ${actualProfiles.length} profiles`);
+    console.log(`  - Profile names: ${actualProfiles.map(p => p.name).join(', ')}`);
 
-    if (user.profiles.length >= 5) {
+    // Clean up orphaned references if any
+    if (actualProfiles.length < user.profiles.length) {
+      console.log(`  - Cleaning up ${user.profiles.length - actualProfiles.length} orphaned references`);
+      user.profiles = actualProfiles.map(p => p._id);
+      await user.save();
+    }
+
+    if (actualProfiles.length >= 5) {
       return res.status(400).json({
         success: false,
         message: 'Maximum of 5 profiles allowed per user'
@@ -494,8 +508,10 @@ const deleteProfile = async (req, res) => {
     }
 
     // Check if user has only one profile (prevent deletion of last profile)
-    const user = await User.findById(userId);
-    if (user.profiles.length <= 1) {
+    const user = await User.findById(userId).populate('profiles');
+    const actualProfiles = user.profiles.filter(p => p != null);
+    
+    if (actualProfiles.length <= 1) {
       return res.status(400).json({
         success: false,
         message: 'Cannot delete the last profile. Each user must have at least one profile'
@@ -830,6 +846,53 @@ const migrateViewingHistory = async (req, res) => {
   }
 };
 
+// Cleanup orphaned profile references
+const cleanupOrphanedProfiles = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    
+    const user = await User.findById(userId).populate('profiles');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const beforeCount = user.profiles.length;
+    const actualProfiles = user.profiles.filter(p => p != null);
+    const afterCount = actualProfiles.length;
+    const orphanedCount = beforeCount - afterCount;
+
+    if (orphanedCount > 0) {
+      user.profiles = actualProfiles.map(p => p._id);
+      await user.save();
+
+      return res.json({
+        success: true,
+        message: `Cleaned up ${orphanedCount} orphaned profile reference(s)`,
+        before: beforeCount,
+        after: afterCount,
+        profiles: actualProfiles.map(p => ({ id: p._id, name: p.name }))
+      });
+    } else {
+      return res.json({
+        success: true,
+        message: 'No orphaned references found',
+        profileCount: actualProfiles.length,
+        profiles: actualProfiles.map(p => ({ id: p._id, name: p.name }))
+      });
+    }
+  } catch (error) {
+    console.error('Error cleaning up profiles:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error cleaning up profiles',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -843,5 +906,6 @@ module.exports = {
   getWatchedContent,
   getUnwatchedContent,
   getUserStatistics,
-  migrateViewingHistory
+  migrateViewingHistory,
+  cleanupOrphanedProfiles
 };
