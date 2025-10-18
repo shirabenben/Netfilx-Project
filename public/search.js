@@ -1,16 +1,16 @@
 // Search page functionality
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize the search content slider
-    const slider = new ContentSlider('search-slider', 'search-left-btn', 'search-right-btn');
-    
-    // Load search results if they exist
+    // Load search results first
     loadSearchResults();
+    
+    // Initialize the search content slider after content is loaded
+    new ContentSlider('search-slider', 'search-left-btn', 'search-right-btn');
 });
 
 function loadSearchResults() {
-    // Get the search results container from the ContentSlider
-    const container = document.getElementById('search-results');
-    if (!container) return;
+    // Get the content row directly (search-results is the content-row itself)
+    const contentRow = document.getElementById('search-results');
+    if (!contentRow) return;
 
     // Check if we have search results data in the page
     const searchDataElement = document.getElementById('searchResultsData');
@@ -20,18 +20,14 @@ function loadSearchResults() {
         const searchResults = JSON.parse(searchDataElement.textContent);
         
         if (searchResults.length > 0) {
-            // Get the content row inside the slider
-            const contentRow = container.querySelector('.content-row');
-            if (contentRow) {
-                // Clear loading spinner
-                contentRow.innerHTML = '';
-                
-                // Add each result as a content card
-                searchResults.forEach(function(content) {
-                    const cardHTML = createContentCard(content);
-                    contentRow.innerHTML += cardHTML;
-                });
-            }
+            // Clear loading spinner
+            contentRow.innerHTML = '';
+            
+            // Add each result as a content card
+            searchResults.forEach(function(content) {
+                const cardHTML = createContentCard(content);
+                contentRow.innerHTML += cardHTML;
+            });
         }
     } catch (error) {
         console.error('Error loading search results:', error);

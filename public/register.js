@@ -63,8 +63,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!password) {
             showError('passwordError', 'Password is required');
             isValid = false;
-        } else if (password.length < 6) {
-            showError('passwordError', 'Password must be at least 6 characters');
+        } else if (password.length < 5) {
+            showError('passwordError', 'Password must be at least 5 characters');
             isValid = false;
         }
         
