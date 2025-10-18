@@ -20,12 +20,8 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: function() {
-      return this.isAdmin;  // Password only required for non-admin users or if admin wants a password
-    },
-    minlength: function() {
-      return this.isAdmin ? 1 : 6;  // Allow short passwords for admin
-    }
+    required: true,
+    minlength: [5, 'Password must be at least 5 characters long']
   },
   firstName: {
     type: String,

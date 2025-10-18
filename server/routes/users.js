@@ -13,7 +13,8 @@ const {
   getUserStatistics,
   migrateViewingHistory,
   getWatchedContent,
-  getUnwatchedContent
+  getUnwatchedContent,
+  cleanupOrphanedProfiles
 } = require('../controllers/userController');
 
 const { requireAuth, requireProfile, login, logout } = require('../middleware/auth');
@@ -99,6 +100,9 @@ router.get('/statistics', requireAuth, getUserStatistics);
 
 // POST /api/users/migrate-viewing-history - Migrate existing viewing habits to watchedContent (protected)
 router.post('/migrate-viewing-history', requireAuth, migrateViewingHistory);
+
+// POST /api/users/cleanup-profiles - Clean up orphaned profile references (protected)
+router.post('/cleanup-profiles', requireAuth, cleanupOrphanedProfiles);
 
 // GET /api/users/check-migration - Check if migration is needed (protected)
 router.get('/check-migration', requireAuth, async (req, res) => {

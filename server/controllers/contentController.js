@@ -427,10 +427,12 @@ const getCountinueWatchContent = async (req, res) => {
       return res.json({ success: true, count: 0, data: [] });
     }
 
-    // Filter out completed series and null content, sort by most recent, limit to 10
+    // Filter out completed series, null content, and episodes, sort by most recent, limit to 10
     const continueWatching = profile.watchedContent
       .filter(item => {
         if (!item.contentId || !item.contentId.isActive) return false;
+        // Exclude episodes
+        if (item.contentId.type === 'episode') return false;
         const isCompleted = profile.completedSeries?.some(
           id => id.toString() === item.contentId._id.toString()
         );

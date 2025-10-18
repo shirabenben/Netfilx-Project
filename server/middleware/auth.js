@@ -34,18 +34,6 @@ const requireAuth = async (req, res, next) => {
 // Middleware to check if profile is selected and valid
 const requireProfile = async (req, res, next) => {
     try {
-        // If user is admin, skip profile requirement
-        if (req.user && req.user.isAdmin) {
-            // Create a virtual admin profile for session management
-            req.profile = {
-                _id: null, // No real profile
-                name: 'Admin',
-                user: req.user._id
-            };
-            req.session.profileId = 'admin';
-            return next();
-        }
-
         const profileId = req.query.profile || req.session?.profileId;
 
         if (!profileId) {
@@ -116,19 +104,7 @@ const login = async (req, res) => {
         // Create session
         req.session.userId = user._id;
 
-        // Admin users don't need profiles, redirect them to homepage
-        if (user.isAdmin) {
-            return res.json({
-                success: true,
-                message: 'Admin login successful',
-                data: {
-                    user: user,
-                    hasProfiles: true, // Admin always goes to homepage
-                    redirectTo: '/homepage'
-                }
-            });
-        }
-
+        // All users (including admin) now use the same login flow with profiles
         res.json({
             success: true,
             message: 'Login successful',
