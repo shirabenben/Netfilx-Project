@@ -103,6 +103,29 @@ async function renderAllMoviesGroupedByGenre() {
                 return;
             }
 
+            // Apply sorting to the data
+            const sortField = sortOrder.replace(/^-/, ''); // Remove '-' prefix
+            const isDescending = sortOrder.startsWith('-');
+            
+            movieData.sort((a, b) => {
+                let aVal = a[sortField];
+                let bVal = b[sortField];
+                
+                // Handle undefined/null values
+                if (aVal === undefined || aVal === null) aVal = 0;
+                if (bVal === undefined || bVal === null) bVal = 0;
+                
+                // Convert to numbers for numeric fields
+                if (sortField === 'popularity' || sortField === 'starRating') {
+                    aVal = Number(aVal) || 0;
+                    bVal = Number(bVal) || 0;
+                }
+                
+                if (aVal < bVal) return isDescending ? 1 : -1;
+                if (aVal > bVal) return isDescending ? -1 : 1;
+                return 0;
+            });
+
             const genreToItems = new Map();
             for (const item of movieData) {
                 const genres = Array.isArray(item.genre) ? item.genre : [];
